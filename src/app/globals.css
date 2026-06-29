@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: #13151a;
+  color: #eceef2;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  /* Subtelne „sukno" stołu do gier w tle */
+  background-image:
+    radial-gradient(1200px 600px at 100% -10%, rgba(52, 165, 120, 0.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(232, 176, 75, 0.06), transparent 55%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-line bg-panel shadow-panel;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-ink/60 px-3 py-2 text-sm text-cream
+      placeholder:text-muted/60 outline-none transition
+      focus:border-felt focus:ring-2 focus:ring-felt/30;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+      transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-felt text-ink hover:bg-felt-dark;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-transparent text-cream hover:bg-panel2;
+  }
+  .btn-danger {
+    @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-panel2 px-2.5 py-1
+      text-xs text-muted;
+  }
+}
+
+/* Pasek przewijania */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2c313d;
+  border-radius: 999px;
+}

@@ -1,0 +1,105 @@
+export interface Game {
+  id: string;
+  name: string;
+  image_url: string | null;
+  min_players: number | null;
+  max_players: number | null;
+  play_time: number | null;
+  description: string | null;
+  created_at: string;
+}
+
+export interface GameWithStats extends Game {
+  play_count: number;
+  avg_rating: number | null;
+  rating_count: number;
+}
+
+export interface Placement {
+  id: string;
+  session_id: string;
+  player: string;
+  place: number;
+}
+
+export interface PlaySession {
+  id: string;
+  game_id: string;
+  played_at: string;
+  duration_min: number | null;
+  note: string | null;
+  created_by: string;
+  created_at: string;
+  placements: Placement[];
+}
+
+export interface Rating {
+  game_id: string;
+  username: string;
+  score: number;
+}
+
+export type PollType = "game" | "date";
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  game_id: string | null;
+  date_value: string | null;
+  sort: number;
+}
+
+export interface Poll {
+  id: string;
+  token: string;
+  title: string;
+  type: PollType;
+  month: string | null;
+  is_open: number;
+  created_by: string;
+  created_at: string;
+}
+
+export interface PollVote {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  voter: string;
+  created_at: string;
+}
+
+export interface PollWithResults extends Poll {
+  options: (PollOption & { votes: number; voters: string[] })[];
+  totalVoters: number;
+  myVotes: string[]; // option ids zaznaczone przez bieżącego użytkownika
+}
+
+export interface Meeting {
+  id: string;
+  date: string;
+  title: string;
+  note: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  name: string;
+  url: string | null;
+  image_url: string | null;
+  note: string | null;
+  added_by: string;
+  created_at: string;
+}
+
+export interface PlayerGameStat {
+  game_id: string;
+  game_name: string;
+  games: number;
+  first: number;
+  second: number;
+  third: number;
+  other: number;
+}
