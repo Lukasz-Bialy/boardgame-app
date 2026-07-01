@@ -5,22 +5,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#13151A",
-        panel: "#1B1E26",
-        panel2: "#232732",
-        line: "#2C313D",
+        ink: "#0D1117",
+        surface: "#090C18",
+        panel: "#161E30",
+        panel2: "#1E2740",
+        panel3: "#263055",
+        line: "#263355",
         felt: {
-          DEFAULT: "#34A578",
-          dark: "#2A8862",
-          soft: "#15392E",
+          DEFAULT: "#2ECC8A",
+          dark: "#24A870",
+          soft: "#0D2820",
         },
         gold: {
-          DEFAULT: "#E8B04B",
-          dark: "#C8943A",
+          DEFAULT: "#F0B42A",
+          dark: "#C8901F",
+          soft: "#2A1E08",
         },
-        cream: "#ECEEF2",
-        muted: "#9AA2B1",
-        danger: "#E5564B",
+        cream: "#E5DFD2",
+        muted: "#6B7D9C",
+        danger: "#E5534A",
       },
       fontFamily: {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
@@ -28,7 +31,11 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        panel: "0 1px 0 0 rgba(255,255,255,0.03) inset, 0 8px 30px -12px rgba(0,0,0,0.6)",
+        panel:
+          "0 0 0 1px rgba(255,255,255,0.045) inset, 0 1px 0 0 rgba(80,160,255,0.06) inset, 0 20px 60px -16px rgba(0,0,0,0.85)",
+        "panel-sm": "0 4px 20px -4px rgba(0,0,0,0.65)",
+        "glow-felt": "0 0 28px -4px rgba(46,204,138,0.35)",
+        "glow-gold": "0 0 28px -4px rgba(240,180,41,0.30)",
       },
     },
   },

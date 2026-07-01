@@ -8,16 +8,17 @@
 
 html,
 body {
-  background-color: #13151a;
-  color: #eceef2;
+  background-color: #0d1117;
+  color: #e5dfd2;
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  /* Subtelne „sukno" stołu do gier w tle */
   background-image:
-    radial-gradient(1200px 600px at 100% -10%, rgba(52, 165, 120, 0.08), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(232, 176, 75, 0.06), transparent 55%);
+    radial-gradient(1400px 900px at 92% -8%, rgba(46, 204, 138, 0.10), transparent 60%),
+    radial-gradient(1100px 700px at -8% 108%, rgba(240, 180, 41, 0.08), transparent 55%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: auto, auto, 28px 28px;
   background-attachment: fixed;
 }
 
@@ -25,39 +26,68 @@ body {
   .panel {
     @apply rounded-2xl border border-line bg-panel shadow-panel;
   }
+
   .input {
-    @apply w-full rounded-xl border border-line bg-ink/60 px-3 py-2 text-sm text-cream
-      placeholder:text-muted/60 outline-none transition
-      focus:border-felt focus:ring-2 focus:ring-felt/30;
+    @apply w-full rounded-xl border border-line bg-surface/80 px-3 py-2 text-sm text-cream
+      placeholder:text-muted/50 outline-none transition
+      focus:border-felt focus:ring-2 focus:ring-felt/20;
   }
+
   .label {
-    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted/70;
   }
+
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
       transition disabled:cursor-not-allowed disabled:opacity-50;
   }
+
   .btn-primary {
-    @apply btn bg-felt text-ink hover:bg-felt-dark;
+    @apply btn text-ink;
+    background: linear-gradient(135deg, #2ecc8a 0%, #24a870 100%);
+    box-shadow:
+      0 4px 16px -4px rgba(46, 204, 138, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    font-weight: 700;
   }
+
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #38d696 0%, #2ecc8a 100%);
+    box-shadow:
+      0 6px 22px -4px rgba(46, 204, 138, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  }
+
   .btn-ghost {
-    @apply btn border border-line bg-transparent text-cream hover:bg-panel2;
+    @apply btn border border-line/80 bg-transparent text-cream hover:bg-panel2 hover:border-line;
   }
+
   .btn-danger {
     @apply btn border border-danger/40 bg-transparent text-danger hover:bg-danger/10;
   }
+
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-line bg-panel2 px-2.5 py-1
-      text-xs text-muted;
+    @apply inline-flex items-center gap-1 rounded-full border border-line/60 bg-panel2 px-2.5 py-1
+      text-xs font-medium text-muted;
   }
 }
 
 /* Pasek przewijania */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
+
+::-webkit-scrollbar-track {
+  background: #090c18;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: #2c313d;
+  background: #263355;
   border-radius: 999px;
+  border: 2px solid #090c18;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 204, 138, 0.35);
 }

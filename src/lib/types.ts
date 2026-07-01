@@ -80,8 +80,14 @@ export interface Meeting {
   date: string;
   title: string;
   note: string | null;
+  poll_token: string | null;
   created_by: string;
   created_at: string;
+}
+
+export interface MeetingWithPoll extends Meeting {
+  poll_title: string | null;
+  poll_is_open: number | null;
 }
 
 export interface WishlistItem {
@@ -92,6 +98,51 @@ export interface WishlistItem {
   note: string | null;
   added_by: string;
   created_at: string;
+}
+
+export interface KebabRestaurant {
+  id: string;
+  name: string;
+  address: string | null;
+  url: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface KebabRestaurantWithStats extends KebabRestaurant {
+  order_count: number;
+  avg_rating: number | null;
+  total_spent: number;
+}
+
+export interface KebabOrder {
+  id: string;
+  restaurant_id: string;
+  meeting_id: string | null;
+  date: string;
+  note: string | null;
+  delivery_cost: number;
+  paid_by: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface KebabItem {
+  id: string;
+  order_id: string;
+  username: string;
+  item_name: string;
+  price: number;
+  rating: number | null;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface KebabOrderWithDetails extends KebabOrder {
+  restaurant_name: string;
+  meeting_title: string | null;
+  items: KebabItem[];
+  settled_usernames: string[];
 }
 
 export interface PlayerGameStat {

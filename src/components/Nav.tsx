@@ -13,6 +13,8 @@ import {
   LogOut,
   Menu,
   X,
+  Shuffle,
+  UtensilsCrossed,
 } from "lucide-react";
 import { Logo, Avatar } from "@/components/ui";
 import type { Session } from "@/lib/auth";
@@ -24,6 +26,8 @@ const NAV = [
   { href: "/polls", label: "Ankiety", icon: Vote },
   { href: "/calendar", label: "Kalendarz", icon: CalendarDays },
   { href: "/wishlist", label: "Wishlista", icon: Heart },
+  { href: "/draw", label: "Losowanie", icon: Shuffle },
+  { href: "/kebab", label: "Kącik kebabowy", icon: UtensilsCrossed },
 ];
 
 export default function Nav({ session }: { session: Session }) {
@@ -38,7 +42,7 @@ export default function Nav({ session }: { session: Session }) {
   }
 
   const links = (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-col gap-0.5">
       {NAV.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
@@ -46,11 +50,13 @@ export default function Nav({ session }: { session: Session }) {
             key={href}
             href={href}
             onClick={() => setOpen(false)}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-              active ? "bg-felt/15 text-felt" : "text-muted hover:bg-panel2 hover:text-cream"
+            className={`flex items-center gap-3 rounded-xl py-2.5 text-sm font-medium transition-all border-l-[3px] ${
+              active
+                ? "border-felt bg-felt/[0.09] text-felt pl-[10px] pr-3"
+                : "border-transparent px-3 text-muted hover:bg-panel2/50 hover:text-cream"
             }`}
           >
-            <Icon size={18} />
+            <Icon size={17} />
             {label}
           </Link>
         );
@@ -61,7 +67,7 @@ export default function Nav({ session }: { session: Session }) {
   return (
     <>
       {/* Górny pasek (mobile) */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-ink/80 px-4 py-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line/50 bg-surface/90 px-4 py-3 backdrop-blur md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2 font-display text-lg font-bold">
           <Logo /> Wieczór gier
         </Link>
@@ -71,7 +77,7 @@ export default function Nav({ session }: { session: Session }) {
       </header>
 
       {open && (
-        <div className="border-b border-line bg-panel p-4 md:hidden">
+        <div className="border-b border-line bg-surface p-4 md:hidden">
           {links}
           <button onClick={logout} className="btn-ghost mt-3 w-full">
             <LogOut size={16} /> Wyloguj
@@ -80,23 +86,30 @@ export default function Nav({ session }: { session: Session }) {
       )}
 
       {/* Sidebar (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-panel/60 p-4 md:flex">
-        <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2 font-display text-xl font-bold">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line/50 bg-surface p-4 md:flex">
+        <Link
+          href="/dashboard"
+          className="mb-7 flex items-center gap-2.5 px-2 font-display text-[1.1rem] font-extrabold tracking-tight"
+        >
           <Logo /> Wieczór gier
         </Link>
+
         {links}
-        <div className="mt-auto border-t border-line pt-4">
-          <div className="mb-3 flex items-center gap-2.5 px-1">
-            <Avatar username={session.username} size={34} />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-cream">{session.displayName}</div>
-              <div className="text-xs text-muted">
-                {session.role === "admin" ? "Administrator" : "Gracz"}
+
+        <div className="mt-auto pt-4">
+          <div className="rounded-xl border border-line/50 bg-panel/40 p-3 mb-2">
+            <div className="flex items-center gap-2.5">
+              <Avatar username={session.username} size={34} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-cream">{session.displayName}</div>
+                <div className="text-xs text-muted">
+                  {session.role === "admin" ? "Administrator" : "Gracz"}
+                </div>
               </div>
             </div>
           </div>
-          <button onClick={logout} className="btn-ghost w-full">
-            <LogOut size={16} /> Wyloguj
+          <button onClick={logout} className="btn-ghost w-full text-xs py-1.5">
+            <LogOut size={14} /> Wyloguj się
           </button>
         </div>
       </aside>

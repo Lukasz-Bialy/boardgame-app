@@ -8,8 +8,9 @@ export async function POST(req: Request) {
     const title = String(body?.title ?? "").trim();
     if (!date) return bad("Podaj datę spotkania");
     if (!title) return bad("Podaj nazwę spotkania");
+    const pollToken = body?.poll_token?.trim() || null;
     const id = await createMeeting(
-      { date, title, note: body?.note?.trim() || null },
+      { date, title, note: body?.note?.trim() || null, poll_token: pollToken },
       session.username
     );
     return ok({ id });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Dices, CalendarDays, BarChart3, Users, Lock } from "lucide-react";
 import { getSession } from "@/lib/auth";
-import { listPolls } from "@/lib/data-misc";
+import { listPolls, listMeetings } from "@/lib/data-misc";
 import { listGames } from "@/lib/data-games";
 import { formatDate } from "@/components/ui";
 import PollForm from "@/components/PollForm";
@@ -10,8 +10,20 @@ export const dynamic = "force-dynamic";
 
 export default async function PollsPage() {
   await getSession();
-  const [polls, games] = await Promise.all([listPolls(), listGames()]);
-  const gameLite = games.map((g) => ({ id: g.id, name: g.name }));
+  const today = new Date().toISOString().slice(0, 10);
+  const [polls, games, allMeetings] = await Promise.all([listPolls(), listGames(), listMeetings()]);
+  const gameLite = games.map((g) => ({
+    id: g.id,
+    name: g.name,
+    image_url: g.image_url,
+    min_players: g.min_players,
+    max_players: g.max_players,
+    play_time: g.play_time,
+    avg_rating: g.avg_rating,
+  }));
+  const upcomingMeetings = allMeetings
+    .filter((m) => m.date >= today)
+    .map((m) => ({ id: m.id, date: m.date, title: m.title }));
 
   return (
     <div className="space-y-6">
@@ -23,7 +35,7 @@ export default async function PollsPage() {
             {polls.length === 1 ? "ankieta" : "ankiet"}
           </p>
         </div>
-        <PollForm games={gameLite} />
+        <PollForm games={gameLite} meetings={upcomingMeetings} />
       </div>
 
       {polls.length === 0 ? (

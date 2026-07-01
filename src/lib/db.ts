@@ -87,6 +87,45 @@ CREATE TABLE IF NOT EXISTS wishlist (
   added_by TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS kebab_restaurants (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT,
+  url TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kebab_orders (
+  id TEXT PRIMARY KEY,
+  restaurant_id TEXT NOT NULL REFERENCES kebab_restaurants(id) ON DELETE CASCADE,
+  meeting_id TEXT,
+  date TEXT NOT NULL,
+  note TEXT,
+  delivery_cost INTEGER NOT NULL DEFAULT 0,
+  paid_by TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kebab_items (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL REFERENCES kebab_orders(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  item_name TEXT NOT NULL,
+  price INTEGER NOT NULL,
+  rating INTEGER,
+  comment TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kebab_settlements (
+  order_id TEXT NOT NULL REFERENCES kebab_orders(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  settled_at TEXT NOT NULL,
+  PRIMARY KEY (order_id, username)
+);
 `;
 
 let initPromise: Promise<void> | null = null;
@@ -96,6 +135,8 @@ export function ensureInit(): Promise<void> {
     initPromise = (async () => {
       await db.execute("PRAGMA foreign_keys = ON;");
       await db.executeMultiple(SCHEMA);
+      // Migracja: kolumna dodana po pierwszym wdrożeniu schematu
+      await db.execute("ALTER TABLE meetings ADD COLUMN poll_token TEXT").catch(() => {});
     })();
   }
   return initPromise;
@@ -104,7 +145,7 @@ export function ensureInit(): Promise<void> {
 export async function q<T = Record<string, unknown>>(sql: string, args: InArgs = []): Promise<T[]> {
   await ensureInit();
   const res = await db.execute({ sql, args });
-  return res.rows as unknown as T[];
+  return res.rows.map((row) => ({ ...row })) as unknown as T[];
 }
 
 export async function run(sql: string, args: InArgs = []): Promise<void> {

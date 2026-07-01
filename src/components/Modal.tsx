@@ -8,11 +8,13 @@ export default function Modal({
   onClose,
   title,
   children,
+  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -30,7 +32,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className="panel max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-b-none rounded-t-2xl md:rounded-2xl"
+        className={`panel max-h-[92vh] w-full overflow-y-auto rounded-b-none rounded-t-2xl md:rounded-2xl ${wide ? "max-w-3xl" : "max-w-lg"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 flex items-center justify-between border-b border-line bg-panel px-5 py-4">

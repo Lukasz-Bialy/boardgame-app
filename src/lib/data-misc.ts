@@ -5,6 +5,7 @@ import type {
   PollWithResults,
   PollType,
   Meeting,
+  MeetingWithPoll,
   WishlistItem,
 } from "./types";
 
@@ -117,20 +118,34 @@ export async function deletePoll(token: string): Promise<void> {
 
 /* ───────────────────────── KALENDARZ ───────────────────────── */
 
-export async function listMeetings(): Promise<Meeting[]> {
-  return q<Meeting>(`SELECT * FROM meetings ORDER BY date ASC`);
+export async function listMeetings(): Promise<MeetingWithPoll[]> {
+  return q<MeetingWithPoll>(`
+    SELECT m.*, p.title AS poll_title, p.is_open AS poll_is_open
+    FROM meetings m
+    LEFT JOIN polls p ON m.poll_token = p.token
+    ORDER BY m.date ASC
+  `);
 }
 
 export async function createMeeting(
-  input: { date: string; title: string; note?: string | null },
+  input: { date: string; title: string; note?: string | null; poll_token?: string | null },
   createdBy: string
 ): Promise<string> {
   const id = uid();
   await run(
-    `INSERT INTO meetings (id, date, title, note, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, input.date, input.title, input.note ?? null, createdBy, nowIso()]
+    `INSERT INTO meetings (id, date, title, note, poll_token, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, input.date, input.title, input.note ?? null, input.poll_token ?? null, createdBy, nowIso()]
   );
   return id;
+}
+
+export async function linkMeetingPoll(meetingId: string, pollToken: string | null): Promise<void> {
+  await run(`UPDATE meetings SET poll_token = ? WHERE id = ?`, [pollToken, meetingId]);
+}
+
+export async function getMeetingByPollToken(pollToken: string): Promise<Meeting | null> {
+  const rows = await q<Meeting>(`SELECT * FROM meetings WHERE poll_token = ? LIMIT 1`, [pollToken]);
+  return rows[0] ?? null;
 }
 
 export async function deleteMeeting(id: string): Promise<void> {
