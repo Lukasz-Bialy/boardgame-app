@@ -27,6 +27,20 @@ export async function listPolls(): Promise<(Poll & { totalVoters: number })[]> {
   `);
 }
 
+/** Otwarte ankiety wraz z listą osób, które już zagłosowały (dla Pulpitu). */
+export async function listOpenPollsWithVoters(): Promise<(Poll & { voters: string[] })[]> {
+  const [polls, votes] = await Promise.all([
+    q<Poll>(`SELECT * FROM polls WHERE is_open = 1 ORDER BY created_at DESC`),
+    q<{ poll_id: string; voter: string }>(
+      `SELECT DISTINCT v.poll_id, v.voter FROM poll_votes v JOIN polls p ON p.id = v.poll_id WHERE p.is_open = 1`
+    ),
+  ]);
+  return polls.map((p) => ({
+    ...p,
+    voters: votes.filter((v) => v.poll_id === p.id).map((v) => v.voter),
+  }));
+}
+
 export interface PollInput {
   title: string;
   type: PollType;
