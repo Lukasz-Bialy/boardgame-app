@@ -126,6 +126,22 @@ CREATE TABLE IF NOT EXISTS kebab_settlements (
   settled_at TEXT NOT NULL,
   PRIMARY KEY (order_id, username)
 );
+
+CREATE TABLE IF NOT EXISTS gift_draws (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  budget INTEGER,               -- grosze
+  note TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gift_pairs (
+  draw_id TEXT NOT NULL REFERENCES gift_draws(id) ON DELETE CASCADE,
+  giver TEXT NOT NULL,          -- kto kupuje prezent
+  receiver TEXT NOT NULL,       -- dla kogo
+  PRIMARY KEY (draw_id, giver)
+);
 `;
 
 let initPromise: Promise<void> | null = null;

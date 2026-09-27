@@ -17,9 +17,18 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { Logo, Avatar } from "@/components/ui";
+import SleighIcon from "@/components/SleighIcon";
 import type { Session } from "@/lib/auth";
 
-const NAV = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  match?: string; // prefiks ścieżki podświetlający link (domyślnie href)
+  festive?: boolean;
+};
+
+const NAV: NavItem[] = [
   { href: "/dashboard", label: "Pulpit", icon: LayoutDashboard },
   { href: "/games", label: "Kolekcja gier", icon: Dices },
   { href: "/history", label: "Moja historia", icon: History },
@@ -28,6 +37,7 @@ const NAV = [
   { href: "/wishlist", label: "Wishlista", icon: Heart },
   { href: "/draw", label: "Losowanie", icon: Shuffle },
   { href: "/kebab", label: "Kącik kebabowy", icon: UtensilsCrossed },
+  { href: "/swieta/prezenty", match: "/swieta", label: "Święta", icon: SleighIcon, festive: true },
 ];
 
 export default function Nav({ session }: { session: Session }) {
@@ -43,8 +53,9 @@ export default function Nav({ session }: { session: Session }) {
 
   const links = (
     <nav className="flex flex-col gap-0.5">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href || pathname.startsWith(href + "/");
+      {NAV.map(({ href, label, icon: Icon, match, festive }) => {
+        const base = match ?? href;
+        const active = pathname === base || pathname.startsWith(base + "/");
         return (
           <Link
             key={href}
@@ -54,10 +65,22 @@ export default function Nav({ session }: { session: Session }) {
               active
                 ? "border-felt bg-felt/[0.09] text-felt pl-[10px] pr-3"
                 : "border-transparent px-3 text-muted hover:bg-panel2/50 hover:text-cream"
-            }`}
+            } ${festive ? "xmas-link" : ""}`}
           >
-            <Icon size={17} />
-            {label}
+            {festive ? (
+              <span className="xmas-icon">
+                <Icon size={17} className="xmas-sleigh" />
+                <span className="xmas-trail" aria-hidden />
+              </span>
+            ) : (
+              <Icon size={17} />
+            )}
+            <span className={festive ? "xmas-label" : undefined}>{label}</span>
+            {festive && (
+              <span className="xmas-snow" aria-hidden>
+                <i>❄</i><i>✦</i><i>❅</i><i>✧</i><i>❄</i><i>✦</i>
+              </span>
+            )}
           </Link>
         );
       })}

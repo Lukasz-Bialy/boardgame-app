@@ -2,7 +2,7 @@
 
 export async function api(
   url: string,
-  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   body?: unknown
 ): Promise<{ ok: boolean; data: any; error?: string }> {
   const res = await fetch(url, {

@@ -145,6 +145,26 @@ export interface KebabOrderWithDetails extends KebabOrder {
   settled_usernames: string[];
 }
 
+export interface GiftDraw {
+  id: string;
+  title: string;
+  budget: number | null; // grosze
+  note: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+/** Losowanie widziane przez konkretnego użytkownika — bez cudzych par. */
+export interface GiftDrawForUser extends GiftDraw {
+  participants: string[];
+  my_receiver: string | null; // null = użytkownik nie bierze udziału
+}
+
+export interface GiftPair {
+  giver: string;
+  receiver: string;
+}
+
 export interface PlayerGameStat {
   game_id: string;
   game_name: string;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   UtensilsCrossed, Plus, Star, CalendarDays, Trash2, Check, X,
-  ChevronDown, ChevronUp, ExternalLink, Package, TrendingUp, ArrowRight,
+  ChevronDown, ChevronUp, ExternalLink, Package, TrendingUp, ArrowRight, Pencil,
 } from "lucide-react";
 import Modal from "@/components/Modal";
 import DeleteButton from "@/components/DeleteButton";
@@ -241,22 +241,31 @@ function RatingSection({
 function OrderCard({
   order,
   players,
+  restaurants,
+  meetings,
   currentUser,
   highlighted = false,
 }: {
   order: KebabOrderWithDetails;
   players: Player[];
+  restaurants: KebabRestaurantWithStats[];
+  meetings: MeetingLite[];
   currentUser: string;
   highlighted?: boolean;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(true);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (highlighted) setExpanded(true);
   }, [highlighted]);
   const [paidBy, setPaidBy] = useState(order.paid_by ?? "");
   const [savingPayer, setSavingPayer] = useState(false);
+
+  useEffect(() => {
+    setPaidBy(order.paid_by ?? "");
+  }, [order.paid_by]);
 
   const d = new Date(order.date + "T00:00:00");
   const hasRatings = order.items.some((i) => i.rating !== null);
@@ -302,6 +311,13 @@ function OrderCard({
                 order.items.filter((i) => i.rating).length).toFixed(1)}
             </span>
           )}
+          <button
+            onClick={() => setEditing(true)}
+            className="text-muted hover:text-cream transition"
+            title="Edytuj zamówienie"
+          >
+            <Pencil size={15} />
+          </button>
           <DeleteButton
             url={`/api/kebab/orders/${order.id}`}
             confirmText={`Usunąć zamówienie z ${order.restaurant_name}?`}
@@ -384,8 +400,18 @@ function OrderCard({
           )}
 
           {/* Ocena własnych pozycji */}
-          <RatingSection order={order} currentUser={currentUser} />
+          <RatingSection key={order.items.map((i) => i.id).join(",")} order={order} currentUser={currentUser} />
         </div>
+      )}
+
+      {editing && (
+        <OrderFormModal
+          restaurants={restaurants}
+          players={players}
+          meetings={meetings}
+          order={order}
+          onClose={() => setEditing(false)}
+        />
       )}
     </div>
   );
@@ -393,33 +419,44 @@ function OrderCard({
 
 /* ─── NewOrderModal ───────────────────────────────────────────────────────── */
 
-type ItemRow = { username: string; item_name: string; price_str: string };
+type ItemRow = { id?: string; username: string; item_name: string; price_str: string };
 
-function NewOrderModal({
+function priceStr(grosz: number): string {
+  return (grosz / 100).toFixed(2).replace(".", ",");
+}
+
+function OrderFormModal({
   restaurants,
   players,
   meetings,
+  order,
   onClose,
 }: {
   restaurants: KebabRestaurantWithStats[];
   players: Player[];
   meetings: MeetingLite[];
+  order?: KebabOrderWithDetails;
   onClose: () => void;
 }) {
   const router = useRouter();
+  const isEdit = !!order;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const today = new Date().toISOString().slice(0, 10);
-  const [restaurantId, setRestaurantId] = useState(restaurants[0]?.id ?? "");
+  const [restaurantId, setRestaurantId] = useState(order?.restaurant_id ?? restaurants[0]?.id ?? "");
   const [newRestName, setNewRestName] = useState("");
   const [showNewRest, setShowNewRest] = useState(restaurants.length === 0);
-  const [date, setDate] = useState(today);
-  const [meetingId, setMeetingId] = useState("");
-  const [delivery, setDelivery] = useState("0");
-  const [note, setNote] = useState("");
-  const [paidBy, setPaidBy] = useState("");
-  const [items, setItems] = useState<ItemRow[]>([{ username: players[0]?.username ?? "", item_name: "", price_str: "" }]);
+  const [date, setDate] = useState(order?.date ?? today);
+  const [meetingId, setMeetingId] = useState(order?.meeting_id ?? "");
+  const [delivery, setDelivery] = useState(order ? priceStr(order.delivery_cost) : "0");
+  const [note, setNote] = useState(order?.note ?? "");
+  const [paidBy, setPaidBy] = useState(order?.paid_by ?? "");
+  const [items, setItems] = useState<ItemRow[]>(
+    order
+      ? order.items.map((i) => ({ id: i.id, username: i.username, item_name: i.item_name, price_str: priceStr(i.price) }))
+      : [{ username: players[0]?.username ?? "", item_name: "", price_str: "" }]
+  );
 
   function addRow() {
     setItems((r) => [...r, { username: players[0]?.username ?? "", item_name: "", price_str: "" }]);
@@ -443,6 +480,7 @@ function NewOrderModal({
     }
 
     const parsedItems = items.map((row) => ({
+      id: row.id,
       username: row.username,
       item_name: row.item_name.trim(),
       price: parsePLN(row.price_str),
@@ -455,7 +493,7 @@ function NewOrderModal({
     }
 
     setSaving(true);
-    const res = await api("/api/kebab/orders", "POST", {
+    const payload = {
       restaurant_id: rid,
       date,
       note: note.trim() || null,
@@ -463,7 +501,10 @@ function NewOrderModal({
       delivery_cost: parsePLN(delivery),
       paid_by: paidBy || null,
       items: parsedItems,
-    });
+    };
+    const res = order
+      ? await api(`/api/kebab/orders/${order.id}`, "PUT", payload)
+      : await api("/api/kebab/orders", "POST", payload);
     setSaving(false);
     if (!res.ok) { setError(res.error!); return; }
     onClose();
@@ -471,7 +512,7 @@ function NewOrderModal({
   }
 
   return (
-    <Modal open onClose={onClose} title="Nowe zamówienie" wide>
+    <Modal open onClose={onClose} title={isEdit ? "Edytuj zamówienie" : "Nowe zamówienie"} wide>
       <div className="space-y-4">
         {/* Restauracja */}
         <div>
@@ -521,11 +562,14 @@ function NewOrderModal({
           </div>
         </div>
 
-        {meetings.length > 0 && (
+        {(meetings.length > 0 || order?.meeting_id) && (
           <div>
             <label className="label">Powiąż ze spotkaniem (opcjonalnie)</label>
             <select className="input" value={meetingId} onChange={(e) => setMeetingId(e.target.value)}>
               <option value="">— brak —</option>
+              {order?.meeting_id && !meetings.some((m) => m.id === order.meeting_id) && (
+                <option value={order.meeting_id}>{order.meeting_title ?? "Powiązane spotkanie"}</option>
+              )}
               {meetings.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.date} — {m.title}
@@ -600,7 +644,9 @@ function NewOrderModal({
         <div className="flex justify-end gap-2">
           <button className="btn-ghost" onClick={onClose}>Anuluj</button>
           <button className="btn-primary" onClick={save} disabled={saving}>
-            {saving ? "Tworzenie…" : "Utwórz zamówienie"}
+            {isEdit
+              ? (saving ? "Zapisywanie…" : "Zapisz zmiany")
+              : (saving ? "Tworzenie…" : "Utwórz zamówienie")}
           </button>
         </div>
       </div>
@@ -839,6 +885,8 @@ export default function KebabClient({
                 key={order.id}
                 order={order}
                 players={players}
+                restaurants={restaurants}
+                meetings={meetings}
                 currentUser={currentUser}
                 highlighted={highlightedOrderId === order.id}
               />
@@ -875,7 +923,7 @@ export default function KebabClient({
       )}
 
       {showNewOrder && (
-        <NewOrderModal
+        <OrderFormModal
           restaurants={restaurants}
           players={players}
           meetings={meetings}

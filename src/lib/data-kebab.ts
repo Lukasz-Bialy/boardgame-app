@@ -100,6 +100,49 @@ export async function createOrder(input: OrderInput, createdBy: string): Promise
   return id;
 }
 
+export interface OrderUpdateInput extends Omit<OrderInput, "items"> {
+  items: { id?: string; username: string; item_name: string; price: number }[];
+}
+
+export async function updateOrder(id: string, input: OrderUpdateInput): Promise<void> {
+  await run(
+    `UPDATE kebab_orders SET restaurant_id = ?, meeting_id = ?, date = ?, note = ?, delivery_cost = ?, paid_by = ?
+     WHERE id = ?`,
+    [
+      input.restaurant_id, input.meeting_id ?? null, input.date, input.note ?? null,
+      input.delivery_cost ?? 0, input.paid_by ?? null, id,
+    ]
+  );
+
+  // Istniejące pozycje aktualizujemy (zachowując oceny), brakujące usuwamy, nowe dodajemy
+  const existing = await q<{ id: string }>(`SELECT id FROM kebab_items WHERE order_id = ?`, [id]);
+  const keepIds = new Set(input.items.filter((i) => i.id).map((i) => i.id));
+  for (const e of existing) {
+    if (!keepIds.has(e.id)) await run(`DELETE FROM kebab_items WHERE id = ?`, [e.id]);
+  }
+  const existingIds = new Set(existing.map((e) => e.id));
+  for (const item of input.items) {
+    if (item.id && existingIds.has(item.id)) {
+      await run(
+        `UPDATE kebab_items SET username = ?, item_name = ?, price = ? WHERE id = ?`,
+        [item.username, item.item_name, item.price, item.id]
+      );
+    } else {
+      await run(
+        `INSERT INTO kebab_items (id, order_id, username, item_name, price, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        [uid(), id, item.username, item.item_name, item.price, nowIso()]
+      );
+    }
+  }
+
+  // Usuń rozliczenia osób, które nie mają już pozycji w zamówieniu
+  const usernames = [...new Set(input.items.map((i) => i.username))];
+  await run(
+    `DELETE FROM kebab_settlements WHERE order_id = ? AND username NOT IN (${usernames.map(() => "?").join(",")})`,
+    [id, ...usernames]
+  );
+}
+
 export async function updateOrderPaidBy(id: string, paidBy: string | null): Promise<void> {
   await run(`UPDATE kebab_orders SET paid_by = ? WHERE id = ?`, [paidBy, id]);
 }
