@@ -43,7 +43,8 @@ const MOCKS = [
     created_by: "Entey",
     created: 0,
     options: ["2026-12-05", "2026-12-12", "2026-12-13", "2026-12-19"],
-    votes: { Entey: [1, 2] },
+    // Eldorida głosował we wszystkich otwartych — na jego koncie widać „Wszystko ogarnięte”
+    votes: { Entey: [1, 2], Eldorida: [2] },
   },
   {
     token: "mock-sylwester",

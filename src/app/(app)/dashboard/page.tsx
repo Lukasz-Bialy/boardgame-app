@@ -23,9 +23,12 @@ export default async function DashboardPage() {
 
   const totalPlays = games.reduce((a, g) => a + g.play_count, 0);
   const pendingPolls = openPolls.filter((p) => !p.voters.includes(session.username));
-  const newestGame = [...games].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const newestGames = [...games].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 3);
+  // W kafelku najpierw ankiety czekające na Twój głos
+  const pollsForTile = [...pendingPolls, ...openPolls.filter((p) => !pendingPolls.includes(p))].slice(0, 3);
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = meetings.filter((m) => m.date >= today).slice(0, 3);
+  const upcomingAll = meetings.filter((m) => m.date >= today);
+  const upcoming = upcomingAll.slice(0, 3);
   const topRated = [...games]
     .filter((g) => g.avg_rating != null)
     .sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0))
@@ -65,6 +68,17 @@ export default async function DashboardPage() {
         <div>
           <p className="mb-1 text-sm text-muted">Cześć,</p>
           <h1 className="font-display text-4xl font-extrabold tracking-tight">{session.displayName} 👋</h1>
+          {/* Brak pilnych akcji — zamiast panelu „Mordo, nie zwlekaj” */}
+          {pendingPolls.length === 0 && (
+            <p className="mt-3 inline-flex items-center gap-3 rounded-full border border-felt/30 bg-felt/10 py-2 pl-3 pr-5 text-lg font-semibold text-felt">
+              <span className="cheers" aria-hidden>
+                <span className="cheers-mug cheers-left">🍺</span>
+                <span className="cheers-mug cheers-right">🍺</span>
+                <span className="cheers-spark">✨</span>
+              </span>
+              Wszystko ogarnięte byku, napij się piwka
+            </p>
+          )}
         </div>
       </div>
 
@@ -72,60 +86,100 @@ export default async function DashboardPage() {
       {pendingPolls.length > 0 && <ActionPanel polls={pendingPolls} />}
 
       {/* Statystyki */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Stat
-          Icon={Dices}
-          label="Gier w kolekcji"
-          value={games.length}
-          accent="felt"
-          href="/games"
-          footer={
-            <StatFooter
-              title="Ostatnio dodana"
-              value={newestGame?.name}
-              sub={newestGame ? ago(newestGame.created_at) : undefined}
-              empty="Dodaj pierwszą grę"
-            />
-          }
-        />
-        <Stat
-          Icon={Trophy}
-          label="Rozegranych partii"
-          value={totalPlays}
-          accent="gold"
-          footer={
-            <StatFooter
-              title="Ostatnia wygrana"
-              value={recent[0] ? displayNameOf(recent[0].player) : undefined}
-              avatar={recent[0]?.player}
-              sub={recent[0] ? `${recent[0].game_name} · ${formatDate(recent[0].played_at)}` : undefined}
-              empty="Jeszcze nikt nie wygrał"
-            />
-          }
-        />
-        <Stat
-          Icon={Vote}
-          label="Otwartych ankiet"
-          value={openPolls.length}
-          accent="felt"
-          href="/polls"
-          footer={<OpenPollsSummary polls={openPolls} pending={pendingPolls.length} />}
-        />
-        <Stat
-          Icon={CalendarDays}
-          label="Nadchodzących spotkań"
-          value={upcoming.length}
-          accent="gold"
-          href="/calendar"
-          footer={
-            <StatFooter
-              title="Najbliższe"
-              value={upcoming[0]?.title}
-              sub={upcoming[0] ? formatDate(upcoming[0].date) : undefined}
-              empty="Nic nie zaplanowano"
-            />
-          }
-        />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat Icon={Dices} label="Gier w kolekcji" value={games.length} accent="felt" href="/games">
+          <TileList
+            empty="Kolekcja jest pusta — dodaj pierwszą grę."
+            items={newestGames.map((g) => ({
+              key: g.id,
+              href: `/games/${g.id}`,
+              leading: g.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={g.image_url} alt="" className="h-9 w-9 rounded-lg object-cover" />
+              ) : (
+                <TileIcon accent="felt"><Dices size={16} /></TileIcon>
+              ),
+              title: g.name,
+              sub: `dodana ${ago(g.created_at)}`,
+              trailing: <span className="font-mono text-xs text-muted">{g.play_count}× grana</span>,
+            }))}
+          />
+        </Stat>
+
+        <Stat Icon={Trophy} label="Rozegranych partii" value={totalPlays} accent="gold" href="/history">
+          <TileList
+            empty="Nikt jeszcze nie wygrał — dodaj pierwszą rozgrywkę."
+            items={recent.slice(0, 3).map((r, i) => ({
+              key: `${r.game_id}-${r.played_at}-${i}`,
+              href: `/games/${r.game_id}`,
+              leading: <WinnerAvatar username={r.player} />,
+              title: displayNameOf(r.player),
+              sub: `wygrana w ${r.game_name}`,
+              trailing: <span className="text-xs text-muted">{formatDate(r.played_at)}</span>,
+            }))}
+          />
+        </Stat>
+
+        <Stat Icon={Vote} label="Otwartych ankiet" value={openPolls.length} accent="felt" href="/polls">
+          {openPolls.length > 0 && (
+            <div className="mb-2">
+              {pendingPolls.length > 0 ? (
+                <span className="chip text-gold">
+                  <BellRing size={12} /> {pendingPolls.length} czeka na Twój głos
+                </span>
+              ) : (
+                <span className="chip text-felt">
+                  <Check size={12} /> Wszystkie Twoje głosy oddane
+                </span>
+              )}
+            </div>
+          )}
+          <TileList
+            empty="Brak otwartych ankiet."
+            items={pollsForTile.map((p) => {
+              const waiting = !p.voters.includes(session.username);
+              return {
+                key: p.id,
+                href: `/polls/${p.token}`,
+                leading: (
+                  <TileIcon accent={p.type === "date" ? "gold" : "felt"}>
+                    {p.type === "date" ? <CalendarDays size={16} /> : <Dices size={16} />}
+                  </TileIcon>
+                ),
+                title: p.title,
+                sub: <PollProgress voters={p.voters.length} />,
+                trailing: waiting ? (
+                  <span className="h-2 w-2 rounded-full bg-gold shadow-glow-gold" title="Czeka na Twój głos" />
+                ) : (
+                  <Check size={14} className="text-felt" aria-label="Zagłosowano" />
+                ),
+              };
+            })}
+          />
+          {openPolls.length > pollsForTile.length && (
+            <p className="mt-1 px-2 text-xs text-muted">+{openPolls.length - pollsForTile.length} więcej</p>
+          )}
+        </Stat>
+
+        <Stat Icon={CalendarDays} label="Nadchodzących spotkań" value={upcomingAll.length} accent="gold" href="/calendar">
+          <TileList
+            empty="Nic nie zaplanowano."
+            items={upcoming.map((m) => {
+              const d = new Date(m.date + "T12:00:00");
+              return {
+                key: m.id,
+                leading: (
+                  <span className="flex h-9 w-9 flex-col items-center justify-center rounded-lg bg-gold/10 leading-none">
+                    <span className="font-display text-sm font-extrabold text-gold">{d.getDate()}</span>
+                    <span className="text-[9px] uppercase text-muted">{d.toLocaleString("pl-PL", { month: "short" })}</span>
+                  </span>
+                ),
+                title: m.title,
+                sub: d.toLocaleDateString("pl-PL", { weekday: "long" }),
+              };
+            })}
+          />
+        </Stat>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -218,92 +272,132 @@ export default async function DashboardPage() {
 
 type Accent = "felt" | "gold";
 
+/**
+ * Kafelek: kompaktowy nagłówek (ikona · nazwa · liczba) + lista szczegółów.
+ * Cały kafelek prowadzi do `href` (link nałożony pod treścią), a pozycje listy mają własne linki —
+ * zagnieżdżanie <a> w <a> jest niedozwolone, więc treść ma pointer-events-none, a linki pozycji auto.
+ */
 function Stat({
   Icon,
   label,
   value,
   accent = "felt",
   href,
-  footer,
+  children,
 }: {
   Icon: LucideIcon;
   label: string;
   value: number;
   accent?: Accent;
-  href?: string;
-  footer?: React.ReactNode;
+  href: string;
+  children: React.ReactNode;
 }) {
   const isGold = accent === "gold";
-  const className = `panel relative flex flex-col overflow-hidden p-5 ${
-    href ? "transition hover:border-felt/40 hover:shadow-glow-felt" : ""
-  }`;
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    href ? <Link href={href} className={className}>{children}</Link> : <div className={className}>{children}</div>;
   return (
-    <Wrapper>
-      {/* Accent gradient top bar */}
+    <div
+      className={`panel group/tile relative flex flex-col overflow-hidden p-4 transition ${
+        isGold ? "hover:border-gold/40 hover:shadow-glow-gold" : "hover:border-felt/40 hover:shadow-glow-felt"
+      }`}
+    >
       <div
-        className={`absolute inset-x-0 top-0 h-[2px] rounded-t-2xl ${
-          isGold
-            ? "bg-gradient-to-r from-gold/70 via-gold/30 to-transparent"
-            : "bg-gradient-to-r from-felt/70 via-felt/30 to-transparent"
+        className={`absolute inset-x-0 top-0 h-[2px] ${
+          isGold ? "bg-gradient-to-r from-gold/70 via-gold/30 to-transparent" : "bg-gradient-to-r from-felt/70 via-felt/30 to-transparent"
         }`}
       />
-      {/* Ghost icon */}
-      <div
-        className="pointer-events-none absolute -bottom-3 -right-3 opacity-[0.055]"
-        aria-hidden
-      >
-        <Icon size={88} />
+      <Link href={href} aria-label={label} className="absolute inset-0 z-0 rounded-2xl" />
+
+      <div className="pointer-events-none relative z-10 flex items-center gap-2.5">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isGold ? "bg-gold/10 text-gold" : "bg-felt/10 text-felt"}`}>
+          <Icon size={16} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wider text-muted">
+          {label}
+        </span>
+        <span className="font-display text-2xl font-extrabold tabular-nums text-cream">{value}</span>
+        <ArrowRight size={14} className="text-muted transition group-hover/tile:translate-x-0.5 group-hover/tile:text-cream" />
       </div>
-      {/* Content */}
-      <div
-        className={`relative z-10 mb-3 inline-flex self-start rounded-xl p-2.5 ${
-          isGold ? "bg-gold/10 text-gold" : "bg-felt/10 text-felt"
-        }`}
-      >
-        <Icon size={18} />
-      </div>
-      <div className="relative z-10 font-display text-4xl font-extrabold tracking-tight text-cream tabular-nums">
-        {value}
-      </div>
-      <div className="relative z-10 mt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
-        {label}
-      </div>
-      {footer && <div className="relative z-10 mt-auto pt-4">{footer}</div>}
-    </Wrapper>
+
+      <div className="pointer-events-none relative z-10 mt-3 flex-1 border-t border-line/60 pt-3">{children}</div>
+    </div>
   );
 }
 
-/** Stopka kafelka: jedna konkretna informacja (np. ostatnio dodana gra) albo tekst zastępczy. */
-function StatFooter({
-  title,
-  value,
-  sub,
-  avatar,
-  empty,
-}: {
+type TileItem = {
+  key: string;
+  href?: string;
+  leading: React.ReactNode;
   title: string;
-  value?: string;
-  sub?: string;
-  avatar?: string;
-  empty: string;
-}) {
+  sub?: React.ReactNode;
+  trailing?: React.ReactNode;
+};
+
+function TileList({ items, empty }: { items: TileItem[]; empty: string }) {
+  if (items.length === 0) return <p className="py-2 text-sm text-muted">{empty}</p>;
   return (
-    <div className="border-t border-line/60 pt-3">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted/80">{title}</p>
-      {value ? (
-        <div className="flex items-center gap-2">
-          {avatar && <Avatar username={avatar} size={22} />}
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-cream">{value}</p>
-            {sub && <p className="truncate text-xs text-muted">{sub}</p>}
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted">{empty}</p>
-      )}
-    </div>
+    <ul className="-mx-2 space-y-0.5">
+      {items.map((it) => {
+        const row = (
+          <>
+            <span className="shrink-0">{it.leading}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-cream">{it.title}</span>
+              {it.sub && <span className="block truncate text-xs text-muted">{it.sub}</span>}
+            </span>
+            {it.trailing && <span className="flex shrink-0 items-center">{it.trailing}</span>}
+          </>
+        );
+        return (
+          <li key={it.key}>
+            {it.href ? (
+              <Link
+                href={it.href}
+                className="pointer-events-auto flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition hover:bg-panel2"
+              >
+                {row}
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2.5 px-2 py-1.5">{row}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function TileIcon({ accent, children }: { accent: Accent; children: React.ReactNode }) {
+  return (
+    <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${accent === "gold" ? "bg-gold/10 text-gold" : "bg-felt/10 text-felt"}`}>
+      {children}
+    </span>
+  );
+}
+
+function WinnerAvatar({ username }: { username: string }) {
+  return (
+    <span className="relative block">
+      <Avatar username={username} size={36} />
+      <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-onaccent ring-2 ring-panel">
+        <Trophy size={9} />
+      </span>
+    </span>
+  );
+}
+
+function PollProgress({ voters }: { voters: number }) {
+  const total = PLAYERS.length;
+  return (
+    <span className="mt-1 flex items-center gap-2">
+      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-panel2">
+        <span
+          className="block h-full rounded-full bg-gradient-to-r from-felt to-felt-dark"
+          style={{ width: `${(voters / total) * 100}%` }}
+        />
+      </span>
+      <span className="font-mono tabular-nums">
+        {voters}/{total}
+      </span>
+    </span>
   );
 }
 
@@ -391,46 +485,6 @@ function ActionPanel({ polls }: { polls: OpenPoll[] }) {
         ))}
       </ul>
     </section>
-  );
-}
-
-/** Stopka kafelka „Otwartych ankiet”: status Twoich głosów + postęp każdej ankiety. */
-function OpenPollsSummary({ polls, pending }: { polls: OpenPoll[]; pending: number }) {
-  if (polls.length === 0) {
-    return <StatFooter title="Status" empty="Brak otwartych ankiet" />;
-  }
-  const total = PLAYERS.length;
-  return (
-    <div className="space-y-2.5 border-t border-line/60 pt-3">
-      {pending > 0 ? (
-        <span className="chip text-gold">
-          <BellRing size={11} /> {pending} czeka na Twój głos
-        </span>
-      ) : (
-        <span className="chip text-felt">
-          <Check size={11} /> Wszystkie Twoje głosy oddane
-        </span>
-      )}
-      <ul className="space-y-2">
-        {polls.slice(0, 3).map((p) => (
-          <li key={p.id}>
-            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
-              <span className="truncate text-cream">{p.title}</span>
-              <span className="shrink-0 font-mono text-muted tabular-nums">
-                {p.voters.length}/{total}
-              </span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-panel2">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-felt to-felt-dark"
-                style={{ width: `${(p.voters.length / total) * 100}%` }}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
-      {polls.length > 3 && <p className="text-xs text-muted">+{polls.length - 3} więcej</p>}
-    </div>
   );
 }
 

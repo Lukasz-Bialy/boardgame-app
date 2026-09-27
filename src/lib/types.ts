@@ -145,6 +145,13 @@ export interface KebabOrderWithDetails extends KebabOrder {
   settled_usernames: string[];
 }
 
+export interface ChatMessage {
+  id: number;
+  username: string;
+  body: string;
+  created_at: string;
+}
+
 export interface GiftDraw {
   id: string;
   title: string;

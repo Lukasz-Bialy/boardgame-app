@@ -136,6 +136,18 @@ CREATE TABLE IF NOT EXISTS gift_draws (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, -- rosnące id = kursor do pobierania nowych wiadomości
+  username TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS presence (
+  username TEXT PRIMARY KEY,
+  last_seen TEXT NOT NULL       -- ostatni sygnał z otwartej aplikacji
+);
+
 CREATE TABLE IF NOT EXISTS gift_pairs (
   draw_id TEXT NOT NULL REFERENCES gift_draws(id) ON DELETE CASCADE,
   giver TEXT NOT NULL,          -- kto kupuje prezent

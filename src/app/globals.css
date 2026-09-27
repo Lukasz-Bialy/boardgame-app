@@ -28,6 +28,17 @@
   --page-dots: rgba(255, 255, 255, 0.018);
   --page-glow-felt: rgba(46, 204, 138, 0.1);
   --page-glow-gold: rgba(240, 180, 41, 0.08);
+  /* Przycisk główny — w obu motywach ten sam jasnozielony gradient z ciemnym tekstem */
+  --btn-text: #0d1117;
+  --btn-from: #2ecc8a;
+  --btn-to: #24a870;
+  --btn-hover-from: #38d696;
+  --btn-hover-to: #2ecc8a;
+  --btn-shadow: 0 4px 16px -4px rgba(46, 204, 138, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  --btn-shadow-hover: 0 6px 22px -4px rgba(46, 204, 138, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  /* Podświetlenie aktywnej zakładki w belce */
+  --nav-active-ring: rgba(46, 204, 138, 0.35);
+  --nav-active-glow: rgba(46, 204, 138, 0.8);
 }
 
 /* Jasny motyw: akcenty przyciemnione tak, by tekst w kolorze felt/gold miał kontrast ≥ 4,5:1 na białym;
@@ -119,21 +130,18 @@ html.theme-transition * {
       transition disabled:cursor-not-allowed disabled:opacity-50;
   }
 
+  /* Kolory przycisku ze zmiennych --btn-* (:root), żeby paleta mogła je nadpisać */
   .btn-primary {
     @apply btn;
-    color: #0d1117; /* = onaccent: ciemny tekst na zielonym w obu motywach */
-    background: linear-gradient(135deg, #2ecc8a 0%, #24a870 100%);
-    box-shadow:
-      0 4px 16px -4px rgba(46, 204, 138, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    color: var(--btn-text);
+    background: linear-gradient(135deg, var(--btn-from) 0%, var(--btn-to) 100%);
+    box-shadow: var(--btn-shadow);
     font-weight: 700;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #38d696 0%, #2ecc8a 100%);
-    box-shadow:
-      0 6px 22px -4px rgba(46, 204, 138, 0.55),
-      0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+    background: linear-gradient(135deg, var(--btn-hover-from) 0%, var(--btn-hover-to) 100%);
+    box-shadow: var(--btn-shadow-hover);
   }
 
   .btn-ghost {
@@ -192,6 +200,91 @@ html.theme-transition * {
 
 @media (prefers-reduced-motion: reduce) {
   .action-bell { animation: none; }
+}
+
+/* ─── Pulpit: stukanie kuflami („Wszystko ogarnięte”) ───────────────────── */
+
+.cheers {
+  position: relative;
+  display: inline-block;
+  width: 3.9rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+
+.cheers-mug {
+  position: absolute;
+  bottom: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  transform-origin: 50% 100%;
+}
+
+.cheers-left {
+  left: 0;
+  animation: cheers-left 2.4s ease-in-out infinite;
+}
+
+/* Emoji 🍺 ma ucho po prawej — lewy kufel jest odbity lustrzanie, więc ucha są na zewnątrz,
+   a stukają się szkła. Obie animacje mają te same wartości, różni je tylko scaleX(-1). */
+.cheers-right {
+  right: 0;
+  animation: cheers-right 2.4s ease-in-out infinite;
+}
+
+.cheers-spark {
+  position: absolute;
+  left: 50%;
+  top: -0.35rem;
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.3);
+  animation: cheers-spark 2.4s ease-out infinite;
+}
+
+/* Kufle zbliżają się tak, by stykały się tylko brzegi szkła (nie nachodziły na siebie) */
+@keyframes cheers-left {
+  0%, 20%   { transform: scaleX(-1) translateX(0) rotate(10deg); }
+  38%       { transform: scaleX(-1) translateX(-0.18rem) rotate(-12deg); }
+  42%       { transform: scaleX(-1) translateX(-0.05rem) rotate(-4deg); }   /* odbicie po stuknięciu */
+  48%       { transform: scaleX(-1) translateX(-0.14rem) rotate(-9deg); }
+  70%, 100% { transform: scaleX(-1) translateX(0) rotate(10deg); }
+}
+
+@keyframes cheers-right {
+  0%, 20%   { transform: translateX(0) rotate(10deg); }
+  38%       { transform: translateX(-0.18rem) rotate(-12deg); }
+  42%       { transform: translateX(-0.05rem) rotate(-4deg); }
+  48%       { transform: translateX(-0.14rem) rotate(-9deg); }
+  70%, 100% { transform: translateX(0) rotate(10deg); }
+}
+
+@keyframes cheers-spark {
+  0%, 36% { opacity: 0; transform: translateX(-50%) scale(0.3) rotate(0); }
+  40%     { opacity: 1; transform: translateX(-50%) translateY(-0.15rem) scale(1.25) rotate(15deg); }
+  58%     { opacity: 0; transform: translateX(-50%) translateY(-0.6rem) scale(0.8) rotate(40deg); }
+  100%    { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cheers-mug, .cheers-spark { animation: none; }
+  .cheers-left { transform: scaleX(-1); }
+}
+
+/* ─── Czat: wysuwanie panelu z prawego dolnego rogu ─────────────────────── */
+
+.chat-pop {
+  transform-origin: bottom right;
+  animation: chat-pop 0.2s ease-out;
+}
+
+@keyframes chat-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-pop { animation: none; }
 }
 
 /* ─── Belka nawigacji ────────────────────────────────────────────────────── */

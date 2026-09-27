@@ -174,7 +174,7 @@ export default function Nav({ session }: { session: Session }) {
                   aria-current={active ? "page" : undefined}
                   className={`relative flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm 2xl:px-2 font-medium transition-all duration-300 ${
                     active
-                      ? "bg-felt/[0.14] text-felt shadow-[inset_0_0_0_1px_rgba(46,204,138,0.35)]"
+                      ? "bg-felt/[0.14] text-felt shadow-[inset_0_0_0_1px_var(--nav-active-ring)]"
                       : "text-muted hover:bg-panel2 hover:text-cream"
                   } ${item.festive ? "xmas-link" : ""}`}
                 >
@@ -189,7 +189,7 @@ export default function Nav({ session }: { session: Session }) {
                   </span>
                   {item.festive && <Snow />}
                   {active && (
-                    <span className="absolute inset-x-3 bottom-0.5 h-[2px] rounded-full bg-felt shadow-[0_0_8px_rgba(46,204,138,0.8)]" />
+                    <span className="absolute inset-x-3 bottom-0.5 h-[2px] rounded-full bg-felt shadow-[0_0_8px_var(--nav-active-glow)]" />
                   )}
                 </Link>
                 {!active && (

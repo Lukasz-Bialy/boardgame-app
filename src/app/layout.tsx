@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+// Paleta „Papier i sukno”. Usuń tę linię, żeby wrócić do poprzedniej (zielono-złotej) palety.
+import "./theme-paper.css";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
