@@ -1,4 +1,4 @@
-import { displayNameOf } from "@/lib/users";
+import { avatarOf, displayNameOf } from "@/lib/users";
 
 export function Logo({ size = 28 }: { size?: number }) {
   return (
@@ -18,18 +18,38 @@ export function Logo({ size = 28 }: { size?: number }) {
 
 const AVATAR_COLORS = ["#34A578", "#E8B04B", "#6C8CFF", "#E5564B", "#B47CFF"];
 
+// Rozmiar skalowany przez --avatar-scale (globals.css: 1.5× na dużych ekranach)
+const scaled = (px: number) => `calc(${px}px * var(--avatar-scale, 1))`;
+
 export function Avatar({ username, size = 28 }: { username: string; size?: number }) {
   const name = displayNameOf(username);
+  const src = avatarOf(username);
+  const dim = scaled(size);
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        title={name}
+        width={size}
+        height={size}
+        loading="lazy"
+        className="inline-block shrink-0 rounded-full object-cover ring-1 ring-line/60"
+        style={{ width: dim, height: dim }}
+      />
+    );
+  }
   const idx = [...username].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length;
   return (
     <span
       title={name}
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-ink"
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-onaccent"
       style={{
-        width: size,
-        height: size,
+        width: dim,
+        height: dim,
         background: AVATAR_COLORS[idx],
-        fontSize: size * 0.42,
+        fontSize: scaled(size * 0.42),
       }}
     >
       {name.slice(0, 1).toUpperCase()}

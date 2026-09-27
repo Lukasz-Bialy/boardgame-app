@@ -2,24 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Motywy ─────────────────────────────────────────────────────────────────
+   Kanały RGB bez przecinków — używane przez tailwind.config.ts jako rgb(var(--c-x) / alpha). */
+
 :root {
   color-scheme: dark;
+  --c-ink: 13 17 23;
+  --c-surface: 9 12 24;
+  --c-panel: 22 30 48;
+  --c-panel2: 30 39 64;
+  --c-panel3: 38 48 85;
+  --c-line: 38 51 85;
+  --c-felt: 46 204 138;
+  --c-felt-dark: 36 168 112;
+  --c-felt-soft: 13 40 32;
+  --c-gold: 240 180 42;
+  --c-gold-dark: 200 144 31;
+  --c-gold-soft: 42 30 8;
+  --c-cream: 229 223 210;
+  --c-muted: 107 125 156;
+  --c-danger: 229 83 74;
+  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.045) inset, 0 1px 0 0 rgba(80, 160, 255, 0.06) inset,
+    0 20px 60px -16px rgba(0, 0, 0, 0.85);
+  --shadow-panel-sm: 0 4px 20px -4px rgba(0, 0, 0, 0.65);
+  --page-dots: rgba(255, 255, 255, 0.018);
+  --page-glow-felt: rgba(46, 204, 138, 0.1);
+  --page-glow-gold: rgba(240, 180, 41, 0.08);
 }
 
-html,
-body {
-  background-color: #0d1117;
-  color: #e5dfd2;
+/* Jasny motyw: akcenty przyciemnione tak, by tekst w kolorze felt/gold miał kontrast ≥ 4,5:1 na białym;
+   tło strony wyraźnie ciemniejsze od paneli, żeby karty się od niego odcinały. */
+html.light {
+  color-scheme: light;
+  --c-ink: 236 232 223;
+  --c-surface: 250 248 243;
+  --c-panel: 255 255 255;
+  --c-panel2: 244 241 234;
+  --c-panel3: 232 227 216;
+  --c-line: 212 204 188;
+  --c-felt: 15 128 84;
+  --c-felt-dark: 11 104 68;
+  --c-felt-soft: 220 242 231;
+  --c-gold: 150 98 0;
+  --c-gold-dark: 124 80 0;
+  --c-gold-soft: 250 236 204;
+  --c-cream: 24 30 44;
+  --c-muted: 84 95 115;
+  --c-danger: 190 45 38;
+  --shadow-panel: 0 1px 2px rgba(30, 40, 60, 0.08), 0 12px 32px -14px rgba(30, 40, 60, 0.28);
+  --shadow-panel-sm: 0 4px 16px -6px rgba(30, 40, 60, 0.3);
+  --page-dots: rgba(0, 0, 0, 0.05);
+  --page-glow-felt: rgba(15, 128, 84, 0.08);
+  --page-glow-gold: rgba(150, 98, 0, 0.07);
+}
+
+/* Na Pulpicie zdjęcie w tle — w jasnym motywie mocniej rozjaśnione, żeby ciemny tekst był czytelny */
+html.light .page-photo-overlay {
+  --tw-gradient-from: rgb(var(--c-ink) / 0.86) var(--tw-gradient-from-position);
+  --tw-gradient-via: rgb(var(--c-ink) / 0.9) var(--tw-gradient-via-position);
+  --tw-gradient-to: rgb(var(--c-ink) / 0.97) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to);
+}
+
+/* Awatary 1,5× większe na dużych ekranach (tyle samo co próg 2xl w belce) */
+:root {
+  --avatar-scale: 1;
+}
+
+@media (min-width: 1536px) {
+  :root {
+    --avatar-scale: 1.5;
+  }
 }
 
 body {
+  color: rgb(var(--c-cream));
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Tło na <html>, nie na <body> — tło body przykrywałoby warstwy z ujemnym z-index
+   (np. zdjęcie w tle na Pulpicie). */
+html {
+  color: rgb(var(--c-cream));
+  background-color: rgb(var(--c-ink));
   background-image:
-    radial-gradient(1400px 900px at 92% -8%, rgba(46, 204, 138, 0.10), transparent 60%),
-    radial-gradient(1100px 700px at -8% 108%, rgba(240, 180, 41, 0.08), transparent 55%),
-    radial-gradient(circle, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    radial-gradient(1400px 900px at 92% -8%, var(--page-glow-felt), transparent 60%),
+    radial-gradient(1100px 700px at -8% 108%, var(--page-glow-gold), transparent 55%),
+    radial-gradient(circle, var(--page-dots) 1px, transparent 1px);
   background-size: auto, auto, 28px 28px;
   background-attachment: fixed;
+}
+
+/* Płynne przejście przy przełączaniu motywu (klasa dodawana na chwilę przez ThemeToggle) */
+html.theme-transition,
+html.theme-transition * {
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s !important;
 }
 
 @layer components {
@@ -43,7 +120,8 @@ body {
   }
 
   .btn-primary {
-    @apply btn text-ink;
+    @apply btn;
+    color: #0d1117; /* = onaccent: ciemny tekst na zielonym w obu motywach */
     background: linear-gradient(135deg, #2ecc8a 0%, #24a870 100%);
     box-shadow:
       0 4px 16px -4px rgba(46, 204, 138, 0.4),
@@ -96,8 +174,16 @@ body {
   opacity: 1;
 }
 
-.xmas-link:hover {
-  border-left-color: #e5534a;
+/* ─── Belka nawigacji ────────────────────────────────────────────────────── */
+
+.nav-pop {
+  animation: nav-pop 0.18s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes nav-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .xmas-icon {
@@ -138,7 +224,6 @@ body {
   background-clip: text;
   color: transparent;
   animation: xmas-shimmer 2.4s linear infinite;
-  font-weight: 700;
 }
 
 /* Śnieg i gwiazdki */
@@ -164,6 +249,14 @@ body {
 .xmas-snow i:nth-child(4) { left: 64%; color: #f0b42a; }
 .xmas-snow i:nth-child(5) { left: 78%; font-size: 7px; }
 .xmas-snow i:nth-child(6) { left: 92%; color: #f0b42a; font-size: 10px; }
+
+html.light .xmas-snow i {
+  color: #7fa3c4;
+}
+
+html.light .xmas-snow i:nth-child(even) {
+  color: #b07a00;
+}
 
 .xmas-link:hover .xmas-snow i {
   animation: xmas-snowfall 1.6s linear infinite;
@@ -277,15 +370,15 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090c18;
+  background: rgb(var(--c-surface));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #263355;
+  background: rgb(var(--c-line));
   border-radius: 999px;
-  border: 2px solid #090c18;
+  border: 2px solid rgb(var(--c-surface));
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(46, 204, 138, 0.35);
+  background: rgb(var(--c-felt) / 0.35);
 }

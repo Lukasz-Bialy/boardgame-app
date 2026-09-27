@@ -353,7 +353,9 @@ export default function GiftsClient({
           </p>
         </div>
       ) : (
-        draws.map((d) => <DrawCard key={d.id} draw={d} isAdmin={isAdmin} />)
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          {draws.map((d) => <DrawCard key={d.id} draw={d} isAdmin={isAdmin} />)}
+        </div>
       )}
 
       {showNew && <NewDrawModal players={players} onClose={() => setShowNew(false)} />}

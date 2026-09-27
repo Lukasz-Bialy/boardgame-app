@@ -1,29 +1,35 @@
 import type { Config } from "tailwindcss";
 
+// Kolory pochodzą ze zmiennych CSS (globals.css: :root = ciemny, html.light = jasny),
+// kanały RGB pozwalają działać modyfikatorom przezroczystości (np. bg-panel/40).
+const c = (name: string) => `rgb(var(--c-${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#0D1117",
-        surface: "#090C18",
-        panel: "#161E30",
-        panel2: "#1E2740",
-        panel3: "#263055",
-        line: "#263355",
+        ink: c("ink"),
+        surface: c("surface"),
+        panel: c("panel"),
+        panel2: c("panel2"),
+        panel3: c("panel3"),
+        line: c("line"),
         felt: {
-          DEFAULT: "#2ECC8A",
-          dark: "#24A870",
-          soft: "#0D2820",
+          DEFAULT: c("felt"),
+          dark: c("felt-dark"),
+          soft: c("felt-soft"),
         },
         gold: {
-          DEFAULT: "#F0B42A",
-          dark: "#C8901F",
-          soft: "#2A1E08",
+          DEFAULT: c("gold"),
+          dark: c("gold-dark"),
+          soft: c("gold-soft"),
         },
-        cream: "#E5DFD2",
-        muted: "#6B7D9C",
-        danger: "#E5534A",
+        cream: c("cream"),
+        muted: c("muted"),
+        danger: c("danger"),
+        // Tekst na akcentach (felt/gold) — ciemny w obu motywach
+        onaccent: "#0D1117",
       },
       fontFamily: {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
@@ -31,11 +37,10 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        panel:
-          "0 0 0 1px rgba(255,255,255,0.045) inset, 0 1px 0 0 rgba(80,160,255,0.06) inset, 0 20px 60px -16px rgba(0,0,0,0.85)",
-        "panel-sm": "0 4px 20px -4px rgba(0,0,0,0.65)",
-        "glow-felt": "0 0 28px -4px rgba(46,204,138,0.35)",
-        "glow-gold": "0 0 28px -4px rgba(240,180,41,0.30)",
+        panel: "var(--shadow-panel)",
+        "panel-sm": "var(--shadow-panel-sm)",
+        "glow-felt": "0 0 28px -4px rgb(var(--c-felt) / 0.35)",
+        "glow-gold": "0 0 28px -4px rgb(var(--c-gold) / 0.30)",
       },
     },
   },

@@ -120,7 +120,9 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
                           <Clock size={12} /> {minutes(s.duration_min)}
                         </span>
                       )}
-                      <span>dodał: {displayNameOf(s.created_by)}</span>
+                      <span className="inline-flex items-center gap-1">
+                        dodał: <Avatar username={s.created_by} size={16} /> {displayNameOf(s.created_by)}
+                      </span>
                       {canDelete && (
                         <DeleteButton
                           url={`/api/sessions/${s.id}`}

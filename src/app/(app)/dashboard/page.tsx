@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { listGames } from "@/lib/data-games";
 import { listPolls, listMeetings } from "@/lib/data-misc";
-import { formatDate } from "@/components/ui";
+import { Avatar, formatDate } from "@/components/ui";
 import { displayNameOf } from "@/lib/users";
 import { q } from "@/lib/db";
 
@@ -41,9 +41,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="border-b border-line/40 pb-6">
-        <p className="mb-1 text-sm text-muted">Cześć,</p>
-        <h1 className="font-display text-4xl font-extrabold tracking-tight">{session.displayName} 👋</h1>
+      {/* Tło tylko dla Pulpitu — przyciemnione (w jasnym motywie rozjaśnione), żeby panele były czytelne.
+          Działa z -z-10, bo tło strony siedzi na <html> (globals.css), nie na <body>. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url(/backgrounds/mnisi.jpg)" }}
+        />
+        <div className="page-photo-overlay absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/80 to-ink/95" />
+      </div>
+      <div className="flex items-center gap-4 pb-[25px]">
+        <span className="flex shrink-0 rounded-full p-[3px] bg-gradient-to-br from-felt to-gold shadow-glow-felt">
+          <Avatar username={session.username} size={64} />
+        </span>
+        <div>
+          <p className="mb-1 text-sm text-muted">Cześć,</p>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight">{session.displayName} 👋</h1>
+        </div>
       </div>
 
       {/* Statystyki */}
@@ -54,7 +68,7 @@ export default async function DashboardPage() {
         <Stat Icon={CalendarDays} label="Nadchodzących spotkań" value={upcoming.length} accent="gold" />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {/* Najwyżej oceniane */}
         <section className="panel p-5">
           <SectionTitle href="/games" label="Najlepiej oceniane" icon={<Star size={14} />} />
@@ -110,7 +124,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* Ostatni zwycięzcy */}
-        <section className="panel p-5 md:col-span-2">
+        <section className="panel p-5 md:col-span-2 xl:col-span-1">
           <SectionTitle href="/games" label="Ostatnie zwycięstwa" icon={<Trophy size={14} />} />
           {recent.length === 0 ? (
             <Empty text="Nikt jeszcze nie wygrał — dodaj pierwszą rozgrywkę!" />
@@ -118,8 +132,11 @@ export default async function DashboardPage() {
             <ul className="space-y-3">
               {recent.map((r, i) => (
                 <li key={i} className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/10 text-gold">
-                    <Trophy size={14} />
+                  <div className="relative shrink-0">
+                    <Avatar username={r.player} size={32} />
+                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-onaccent ring-2 ring-panel">
+                      <Trophy size={9} />
+                    </span>
                   </div>
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm">
                     <span className="font-semibold text-cream">{displayNameOf(r.player)}</span>

@@ -17,7 +17,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    // suppressHydrationWarning: skrypt poniżej może dodać klasę "light" przed hydratacją
+    <html lang="pl" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Ustawia zapisany motyw przed pierwszym malowaniem — bez mignięcia ciemnego motywu */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

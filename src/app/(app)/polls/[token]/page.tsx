@@ -5,7 +5,7 @@ import { ArrowLeft, Dices, CalendarDays } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { getPollByToken, getMeetingByPollToken } from "@/lib/data-misc";
 import { displayNameOf } from "@/lib/users";
-import { formatDate } from "@/components/ui";
+import { Avatar, formatDate } from "@/components/ui";
 import PollVoting from "@/components/PollVoting";
 
 export const dynamic = "force-dynamic";
@@ -50,8 +50,9 @@ export default async function PollPage({ params }: { params: Promise<{ token: st
           )}
         </span>
         <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight">{poll.title}</h1>
-        <p className="mt-1 text-sm text-muted">
-          Utworzył(a) {displayNameOf(poll.created_by)} · {formatDate(poll.created_at)} ·{" "}
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
+          Utworzył(a) <Avatar username={poll.created_by} size={18} /> {displayNameOf(poll.created_by)} ·{" "}
+          {formatDate(poll.created_at)} ·{" "}
           {poll.totalVoters} {poll.totalVoters === 1 ? "głosujący" : "głosujących"}
         </p>
       </div>

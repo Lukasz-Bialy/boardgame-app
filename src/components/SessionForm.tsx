@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import Modal from "@/components/Modal";
+import { Avatar } from "@/components/ui";
 import { api } from "@/lib/client";
 import { PLAYERS } from "@/lib/users";
 
@@ -89,7 +90,8 @@ export default function SessionForm({ gameId }: { gameId: string }) {
             <div className="space-y-2">
               {PLAYERS.map((u) => (
                 <div key={u.username} className="flex items-center justify-between gap-3">
-                  <span className="text-sm">
+                  <span className="flex items-center gap-2 text-sm">
+                    <Avatar username={u.username} size={28} />
                     {u.displayName} <span className="text-muted">({u.username})</span>
                   </span>
                   <input

@@ -870,9 +870,9 @@ export default function KebabClient({
       </div>
 
       {tab === "orders" && (
-        <div className="space-y-4">
+        <div className="grid items-start gap-4 xl:grid-cols-2">
           {orders.length === 0 ? (
-            <div className="panel flex flex-col items-center gap-3 p-12 text-center">
+            <div className="panel flex flex-col items-center gap-3 p-12 text-center xl:col-span-2">
               <UtensilsCrossed size={40} className="text-muted" />
               <p className="text-muted">Brak zamówień. Zacznij od dodania restauracji i pierwszego zamówienia.</p>
               <button className="btn-primary" onClick={() => setShowNewOrder(true)}>
@@ -907,7 +907,7 @@ export default function KebabClient({
               <p className="text-sm text-muted">
                 {restaurants.length} restauracji · posortowane wg średniej oceny
               </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {restaurants.map((r) => (
                   <RestaurantCard
                     key={r.id}

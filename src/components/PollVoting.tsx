@@ -112,7 +112,7 @@ export default function PollVoting({
               <div className="relative flex items-center gap-3 p-3.5">
                 <span
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                    picked ? "border-felt bg-felt text-ink" : "border-line"
+                    picked ? "border-felt bg-felt text-onaccent" : "border-line"
                   }`}
                 >
                   {picked && <Check size={13} strokeWidth={3} />}

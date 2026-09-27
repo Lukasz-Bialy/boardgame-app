@@ -23,6 +23,19 @@ export function findUserByLogin(username: string): AppUser | undefined {
   return USERS.find((x) => x.username.toLowerCase() === u);
 }
 
+// Zdjęcia profilowe w public/avatars (256×256, kadr na twarz).
+const AVATARS: Record<string, string> = {
+  Bulczy: "/avatars/michal.jpg",
+  Chleboldi: "/avatars/macius.jpg",
+  Eldorida: "/avatars/pawel.jpg",
+  Vrenshrrgn: "/avatars/milek.jpg",
+  Entey: "/avatars/lukasz.jpg",
+};
+
+export function avatarOf(username: string): string | undefined {
+  return AVATARS[username];
+}
+
 export function displayNameOf(username: string): string {
   return USERS.find((u) => u.username === username)?.displayName ?? username;
 }

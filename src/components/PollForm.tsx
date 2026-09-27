@@ -48,7 +48,7 @@ function GameTile({ game, selected, onToggle }: { game: GameLite; selected: bool
         {/* Overlay zaznaczenia */}
         {selected && (
           <div className="absolute inset-0 flex items-center justify-center bg-felt/30">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-felt text-ink shadow-lg">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-felt text-onaccent shadow-lg">
               <Check size={18} strokeWidth={3} />
             </span>
           </div>
