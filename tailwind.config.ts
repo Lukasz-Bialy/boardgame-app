@@ -8,6 +8,9 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        "3xl": "1600px", // od tej szerokości belka mieści wszystkie zakładki z nazwami
+      },
       colors: {
         ink: c("ink"),
         surface: c("surface"),

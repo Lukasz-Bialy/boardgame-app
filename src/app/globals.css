@@ -495,3 +495,16 @@ html.light .xmas-snow i:nth-child(even) {
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--c-felt) / 0.35);
 }
+
+/* Wykresy (zakładka Liga): niebieski = wygrane, czerwony = porażki, neutralny szary środek skali winrate.
+   Para zwalidowana pod kątem daltonizmu i kontrastu na tle paneli obu motywów. */
+:root {
+  --viz-pos: #3987e5;
+  --viz-neg: #e66767;
+  --viz-mid: #383835;
+}
+html.light {
+  --viz-pos: #2a78d6;
+  --viz-neg: #e34948;
+  --viz-mid: #f0efec;
+}

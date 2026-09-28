@@ -154,6 +154,18 @@ CREATE TABLE IF NOT EXISTS gift_pairs (
   receiver TEXT NOT NULL,       -- dla kogo
   PRIMARY KEY (draw_id, giver)
 );
+
+CREATE TABLE IF NOT EXISTS user_passwords (
+  username TEXT PRIMARY KEY,
+  hash TEXT NOT NULL,           -- "scrypt$<sól hex>$<hash hex>", nigdy jawne hasło
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS riot_cache (
+  key TEXT PRIMARY KEY,         -- "match:<id>", "account:<nick>#<tag>", "ids:<puuid>"
+  data TEXT NOT NULL,           -- JSON
+  updated_at TEXT NOT NULL
+);
 `;
 
 let initPromise: Promise<void> | null = null;

@@ -16,10 +16,13 @@ import {
   Shuffle,
   UtensilsCrossed,
   ChevronDown,
+  Swords,
+  KeyRound,
 } from "lucide-react";
 import { Avatar } from "@/components/ui";
 import SleighIcon from "@/components/SleighIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import type { Session } from "@/lib/auth";
 
 type NavItem = {
@@ -39,6 +42,7 @@ const NAV: NavItem[] = [
   { href: "/wishlist", label: "Wishlista", icon: Heart },
   { href: "/draw", label: "Losowanie", icon: Shuffle },
   { href: "/kebab", label: "Kącik kebabowy", icon: UtensilsCrossed },
+  { href: "/liga", label: "Liga", icon: Swords },
   { href: "/swieta/prezenty", match: "/swieta", label: "Święta", icon: SleighIcon, festive: true },
 ];
 
@@ -68,7 +72,15 @@ function Snow() {
 
 /* ─── Menu użytkownika ────────────────────────────────────────────────────── */
 
-function UserMenu({ session, onLogout }: { session: Session; onLogout: () => void }) {
+function UserMenu({
+  session,
+  onLogout,
+  onChangePassword,
+}: {
+  session: Session;
+  onLogout: () => void;
+  onChangePassword: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -119,6 +131,16 @@ function UserMenu({ session, onLogout }: { session: Session; onLogout: () => voi
           </div>
           <button
             role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onChangePassword();
+            }}
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-muted transition hover:bg-panel2 hover:text-cream"
+          >
+            <KeyRound size={15} /> Zmień hasło
+          </button>
+          <button
+            role="menuitem"
             onClick={onLogout}
             className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-muted transition hover:bg-danger/10 hover:text-danger"
           >
@@ -136,6 +158,7 @@ export default function Nav({ session }: { session: Session }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -147,7 +170,7 @@ export default function Nav({ session }: { session: Session }) {
 
   return (
     <header className="sticky top-0 z-40 px-4 pt-3 md:px-8 md:pt-4">
-      <div className="relative mx-auto flex max-w-[1440px] items-center gap-3 rounded-2xl border border-line/60 bg-surface/70 px-3 py-2 shadow-panel-sm backdrop-blur-xl">
+      <div className="relative mx-auto flex max-w-[1600px] items-center gap-3 rounded-2xl border border-line/60 bg-surface/70 px-3 py-2 shadow-panel-sm backdrop-blur-xl">
         {/* Logo: na mobile małe w belce, od md plakietka zwisająca pod belką (belka zostaje smukła) */}
         <Link
           href="/dashboard"
@@ -163,7 +186,7 @@ export default function Nav({ session }: { session: Session }) {
         <span aria-hidden className="hidden w-[151px] shrink-0 md:block" />
 
         {/* Desktop: pigułki z ikonami, aktywna rozwija się z nazwą */}
-        <nav className="mx-auto hidden items-center gap-1 rounded-xl bg-panel/50 p-1 md:flex">
+        <nav className="mx-auto hidden min-w-0 items-center gap-1 rounded-xl bg-panel/50 p-1 lg:flex">
           {NAV.map((item) => {
             const active = isActive(pathname, item);
             return (
@@ -172,7 +195,7 @@ export default function Nav({ session }: { session: Session }) {
                   href={item.href}
                   aria-label={item.label}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm 2xl:px-2 font-medium transition-all duration-300 ${
+                  className={`relative flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm 3xl:px-2 font-medium transition-all duration-300 ${
                     active
                       ? "bg-felt/[0.14] text-felt shadow-[inset_0_0_0_1px_var(--nav-active-ring)]"
                       : "text-muted hover:bg-panel2 hover:text-cream"
@@ -181,8 +204,8 @@ export default function Nav({ session }: { session: Session }) {
                   <NavIcon item={item} />
                   <span
                     className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${
-                      // Szeroki ekran (2xl): zawsze z nazwą; węższy: nazwa tylko przy aktywnej
-                      active ? "max-w-[10rem] opacity-100" : "max-w-0 opacity-0 2xl:max-w-[10rem] 2xl:opacity-100"
+                      // Szeroki ekran (3xl, 1600px): zawsze z nazwą; węższy: nazwa tylko przy aktywnej
+                      active ? "max-w-[10rem] opacity-100" : "max-w-0 opacity-0 3xl:max-w-[10rem] 3xl:opacity-100"
                     } ${item.festive ? "xmas-label" : ""}`}
                   >
                     {item.label}
@@ -193,7 +216,7 @@ export default function Nav({ session }: { session: Session }) {
                   )}
                 </Link>
                 {!active && (
-                  <span className="nav-tip pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-panel px-2.5 py-1 text-xs font-medium text-cream opacity-0 shadow-panel-sm transition group-hover:opacity-100 2xl:hidden">
+                  <span className="nav-tip pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-panel px-2.5 py-1 text-xs font-medium text-cream opacity-0 shadow-panel-sm transition group-hover:opacity-100 3xl:hidden">
                     {item.label}
                   </span>
                 )}
@@ -202,16 +225,16 @@ export default function Nav({ session }: { session: Session }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
           <ThemeToggle />
-          <div className="hidden md:block">
-            <UserMenu session={session} onLogout={logout} />
+          <div className="hidden lg:block">
+            <UserMenu session={session} onLogout={logout} onChangePassword={() => setPwOpen(true)} />
           </div>
-          <span className="md:hidden">
+          <span className="lg:hidden">
             <Avatar username={session.username} size={30} />
           </span>
           <button
-            className="btn-ghost px-2.5 py-2 md:hidden"
+            className="btn-ghost px-2.5 py-2 lg:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label="Menu"
             aria-expanded={open}
@@ -223,7 +246,7 @@ export default function Nav({ session }: { session: Session }) {
 
       {/* Mobile: siatka kafelków */}
       {open && (
-        <div className="nav-pop mx-auto mt-2 max-w-[1440px] rounded-2xl border border-line/60 bg-surface/95 p-3 shadow-panel backdrop-blur-xl md:hidden">
+        <div className="nav-pop mx-auto mt-2 max-w-[1600px] rounded-2xl border border-line/60 bg-surface/95 p-3 shadow-panel backdrop-blur-xl lg:hidden">
           <div className="grid grid-cols-3 gap-2">
             {NAV.map((item) => {
               const active = isActive(pathname, item);
@@ -250,12 +273,25 @@ export default function Nav({ session }: { session: Session }) {
               <div className="truncate text-sm font-semibold text-cream">{session.displayName}</div>
               <div className="text-xs text-muted">{session.role === "admin" ? "Administrator" : "Gracz"}</div>
             </div>
+            <button
+              onClick={() => {
+                setOpen(false);
+                setPwOpen(true);
+              }}
+              className="btn-ghost px-2.5 py-1.5 text-xs"
+              aria-label="Zmień hasło"
+              title="Zmień hasło"
+            >
+              <KeyRound size={14} />
+            </button>
             <button onClick={logout} className="btn-ghost px-3 py-1.5 text-xs">
               <LogOut size={14} /> Wyloguj
             </button>
           </div>
         </div>
       )}
+
+      <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
     </header>
   );
 }
