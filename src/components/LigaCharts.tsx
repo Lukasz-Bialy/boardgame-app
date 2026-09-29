@@ -212,7 +212,7 @@ function Heatmap({
   );
 }
 
-/* ─── Gry dzień po dniu: słupki skumulowane wygrane/porażki ─── */
+/* ─── Gry w czasie: słupki skumulowane wygrane/porażki (dni / tygodnie / miesiące) ─── */
 
 function dayList(from: string, to: string): string[] {
   const out: string[] = [];
@@ -234,14 +234,44 @@ function niceStep(max: number) {
 
 const shortDay = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
 
+function mondayOf(day: string) {
+  const d = new Date(day + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+// Długie zakresy grupujemy, żeby słupki nie miały po 1 px: >120 dni tygodnie, >540 dni miesiące
+type Grain = "dzień" | "tydzień" | "miesiąc";
+const GRAIN = {
+  dzień: { title: "Gry dzień po dniu", col: "Dzień", key: (d: string) => d, label: shortDay, tip: shortDay },
+  tydzień: {
+    title: "Gry tydzień po tygodniu",
+    col: "Tydzień od",
+    key: mondayOf,
+    label: shortDay,
+    tip: (k: string) => `tydzień od ${shortDay(k)}.${k.slice(0, 4)}`,
+  },
+  miesiąc: {
+    title: "Gry miesiąc po miesiącu",
+    col: "Miesiąc",
+    key: (d: string) => d.slice(0, 7),
+    label: (k: string) => `${k.slice(5, 7)}.${k.slice(2, 4)}`,
+    tip: (k: string) =>
+      new Date(k + "-01T12:00:00Z").toLocaleDateString("pl-PL", { month: "long", year: "numeric", timeZone: "UTC" }),
+  },
+} satisfies Record<Grain, { title: string; col: string; key: (d: string) => string; label: (k: string) => string; tip: (k: string) => string }>;
+
 function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string }) {
   const { card, bind, node } = useTip();
   const [table, setTable] = useState(false);
 
-  const days = dayList(from, to);
+  const allDays = dayList(from, to);
+  const grain: Grain = allDays.length > 540 ? "miesiąc" : allDays.length > 120 ? "tydzień" : "dzień";
+  const g = GRAIN[grain];
+  const days = [...new Set(allDays.map(g.key))]; // klucze kolejnych słupków
   const byDay = new Map(days.map((d) => [d, { w: 0, l: 0 }]));
   for (const r of teamGames(rows)) {
-    const c = byDay.get(r.game.day);
+    const c = byDay.get(g.key(r.game.day));
     if (!c) continue;
     if (r.p.win) c.w++;
     else c.l++;
@@ -255,7 +285,7 @@ function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string 
 
   return (
     <ChartCard
-      title="Gry dzień po dniu"
+      title={g.title}
       subtitle="Gry wybranych graczy — wspólna gra liczy się raz"
       cardRef={card}
       tip={node}
@@ -282,7 +312,7 @@ function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="py-2 font-medium">Dzień</th>
+                <th className="py-2 font-medium">{g.col}</th>
                 <th className="py-2 text-right font-medium">Wygrane</th>
                 <th className="py-2 text-right font-medium">Porażki</th>
                 <th className="py-2 text-right font-medium">Winrate</th>
@@ -296,7 +326,7 @@ function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string 
                   const c = byDay.get(d)!;
                   return (
                     <tr key={d} className="border-b border-line/40 last:border-0">
-                      <td className="py-1.5">{shortDay(d)}</td>
+                      <td className="py-1.5">{g.tip(d)}</td>
                       <td className="py-1.5 text-right tabular-nums">{c.w}</td>
                       <td className="py-1.5 text-right tabular-nums">{c.l}</td>
                       <td className="py-1.5 text-right tabular-nums">{pct(c)}%</td>
@@ -336,7 +366,7 @@ function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string 
                       {...(n > 0
                         ? bind({
                             value: `${c.w} W – ${c.l} P`,
-                            title: shortDay(d),
+                            title: g.tip(d),
                             detail: `${pct(c)}% winrate · ${games(n)}`,
                           })
                         : {})}
@@ -368,7 +398,7 @@ function DailyChart({ rows, from, to }: { rows: Row[]; from: string; to: string 
             <div className="mt-1.5 flex text-[11px] tabular-nums text-muted">
               {days.map((d, i) => (
                 <span key={d} className="flex-1 text-center">
-                  {i % every === 0 ? shortDay(d) : ""}
+                  {i % every === 0 ? g.label(d) : ""}
                 </span>
               ))}
             </div>

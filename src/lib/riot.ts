@@ -1,6 +1,7 @@
 // Klient Riot Games API (tylko po stronie serwera — klucz nie trafia do przeglądarki)
 
-import { q, run } from "./db";
+import { createHash } from "node:crypto";
+import { db, q, run } from "./db";
 
 const REGION = "https://europe.api.riotgames.com"; // routing regionalny dla EUNE
 
@@ -196,45 +197,136 @@ async function cacheSet(key: string, value: unknown): Promise<void> {
   );
 }
 
+const accountPath = (gameName: string, tagLine: string) =>
+  `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+
 export async function getAccount(gameName: string, tagLine: string): Promise<RiotAccount> {
   const key = `account:${gameName.toLowerCase()}#${tagLine.toLowerCase()}`;
   const cached = await cacheGet<RiotAccount>(key);
   if (cached) return cached.data;
-  const acc = await riot<RiotAccount>(
-    `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`
-  );
+  const acc = await riot<RiotAccount>(accountPath(gameName, tagLine));
   await cacheSet(key, acc);
   return acc;
 }
 
-// Lista meczów z zakresu: odświeżana najwyżej co 2 min; zakres zamknięty w przeszłości już się nie zmieni.
-// Gdy Riot odmówi — ostatnia znana lista.
+/* ─── Zmiana klucza API ─── */
+
+// Riot szyfruje PUUID osobno dla każdego klucza, więc po zmianie klucza (deweloperski wygasa co 24 h)
+// PUUID-y z cache są odrzucane („Exception decrypting”). Przy nowym kluczu pobieramy konta od nowa
+// i podmieniamy PUUID-y w zapisanych meczach — zamiast kasować cache, bo starszych meczów Riot już nie odda.
+const KEY_META = "meta:api-key";
+let keySync: Promise<void> | null = null;
+
+function syncCacheWithKey(): Promise<void> {
+  keySync ??= migrateCacheToKey().catch((e) => {
+    keySync = null; // nieudana migracja (np. limit zapytań) — ponów przy następnym wejściu
+    throw e;
+  });
+  return keySync;
+}
+
+async function migrateCacheToKey(): Promise<void> {
+  const key = process.env.RIOT_API_KEY;
+  if (!key) return; // brak klucza zgłosi riot()
+  const fingerprint = createHash("sha256").update(key).digest("hex").slice(0, 16);
+  if ((await cacheGet<string>(KEY_META))?.data === fingerprint) return;
+
+  // Najpierw wszystkie konta — zapisujemy dopiero na końcu, żeby przerwana migracja nie zgubiła starych PUUID-ów
+  const accounts = await q<{ key: string; data: string }>(
+    "SELECT key, data FROM riot_cache WHERE key LIKE 'account:%'"
+  );
+  const fresh: { key: string; acc: RiotAccount | null }[] = [];
+  const remap = new Map<string, string>();
+  for (const row of accounts) {
+    const old = JSON.parse(row.data) as RiotAccount;
+    try {
+      const acc = await riot<RiotAccount>(accountPath(old.gameName, old.tagLine));
+      fresh.push({ key: row.key, acc });
+      if (acc.puuid !== old.puuid) remap.set(old.puuid, acc.puuid);
+    } catch (e) {
+      if (!(e instanceof RiotError && e.status === 404)) throw e;
+      fresh.push({ key: row.key, acc: null }); // konto zmieniło Riot ID — pobierze się od nowa
+    }
+  }
+
+  if (remap.size) {
+    const matches = await q<{ key: string; data: string }>(
+      "SELECT key, data FROM riot_cache WHERE key LIKE 'match:%'"
+    );
+    const updates = [];
+    for (const row of matches) {
+      const m = JSON.parse(row.data) as RawMatch;
+      let hit = false;
+      for (const p of m.info.participants) {
+        const puuid = remap.get(p.puuid);
+        if (puuid) [p.puuid, hit] = [puuid, true];
+      }
+      if (hit) updates.push({ sql: "UPDATE riot_cache SET data = ? WHERE key = ?", args: [JSON.stringify(m), row.key] });
+    }
+    for (let i = 0; i < updates.length; i += 100) await db.batch(updates.slice(i, i + 100), "write");
+    // Listy meczów są kluczowane starym PUUID-em — pobiorą się od nowa
+    await run("DELETE FROM riot_cache WHERE key LIKE 'ids:%'");
+  }
+
+  for (const { key: k, acc } of fresh) {
+    if (acc) await cacheSet(k, acc);
+    else await run("DELETE FROM riot_cache WHERE key = ?", [k]);
+  }
+  await cacheSet(KEY_META, fingerprint);
+}
+
+// Najwcześniejszy dzień, od którego Riot filtruje listę meczów po dacie (startTime).
+// Sam Riot trzyma ok. 2 lat historii, więc starsze gry i tak nie wrócą.
+export const EARLIEST_DAY = "2021-06-16";
+
 const IDS_TTL_MS = 2 * 60 * 1000;
 const IDS_PAGE = 100; // maksimum Riot na jedno zapytanie
-export const MAX_IDS_PER_PLAYER = 300;
 
-async function getMatchIds(puuid: string, from: number, to: number): Promise<string[]> {
+type IdList = { ids: string[]; complete: boolean };
+
+// Wszystkie strony listy meczów z zakresu. Przy limicie zapytań w połowie — to, co zdążyliśmy pobrać.
+async function fetchIdRange(puuid: string, startSec: number, endSec: number): Promise<IdList> {
+  const ids: string[] = [];
+  for (let start = 0; ; start += IDS_PAGE) {
+    let page: string[];
+    try {
+      page = await riot<string[]>(
+        `/lol/match/v5/matches/by-puuid/${puuid}/ids?startTime=${startSec}&endTime=${endSec}&start=${start}&count=${IDS_PAGE}`
+      );
+    } catch (e) {
+      if (e instanceof RiotError && e.status === 429) return { ids, complete: false };
+      throw e;
+    }
+    ids.push(...page);
+    if (page.length < IDS_PAGE) return { ids, complete: true };
+  }
+}
+
+// closed = zakres w całości w przeszłości: raz pobrana pełna lista zostaje na zawsze;
+// otwarty (sięga do dziś) — odświeżany najwyżej co 2 min. Gdy Riot odmówi — ostatnia znana lista.
+async function cachedIdRange(puuid: string, from: number, to: number, closed: boolean): Promise<IdList> {
   const startSec = Math.floor(from / 1000);
   const endSec = Math.floor(to / 1000);
   const key = `ids:${puuid}:${startSec}:${endSec}`;
   const cached = await cacheGet<string[]>(key);
-  const closed = cached && cached.updatedAt > to + 60 * 60 * 1000; // pobrane godzinę po końcu zakresu
-  if (cached && (closed || Date.now() - cached.updatedAt < IDS_TTL_MS)) return cached.data;
-  try {
-    const ids: string[] = [];
-    for (let start = 0; start < MAX_IDS_PER_PLAYER; start += IDS_PAGE) {
-      const page = await riot<string[]>(
-        `/lol/match/v5/matches/by-puuid/${puuid}/ids?startTime=${startSec}&endTime=${endSec}&start=${start}&count=${IDS_PAGE}`
-      );
-      ids.push(...page);
-      if (page.length < IDS_PAGE) break;
-    }
-    await cacheSet(key, ids);
-    return ids;
-  } catch (e) {
-    if (cached && e instanceof RiotError && e.status === 429) return cached.data;
-    throw e;
+  if (cached && (closed || Date.now() - cached.updatedAt < IDS_TTL_MS)) return { ids: cached.data, complete: true };
+  const fresh = await fetchIdRange(puuid, startSec, endSec);
+  if (fresh.complete) {
+    await cacheSet(key, fresh.ids);
+    return fresh;
   }
+  return cached ? { ids: cached.data, complete: true } : fresh;
+}
+
+// Zakres dzielimy na część sprzed bieżącego miesiąca (zamkniętą — po pobraniu nie kosztuje już zapytań)
+// i bieżący miesiąc (odświeżany). Bez tego długi zakres co 2 min pobierałby od nowa całą historię.
+async function getMatchIds(puuid: string, from: number, to: number): Promise<IdList> {
+  const monthStart = warsawDayStart(warsawDay(Date.now()).slice(0, 8) + "01");
+  const parts: Promise<IdList>[] = [];
+  if (from < monthStart) parts.push(cachedIdRange(puuid, from, Math.min(to, monthStart), true));
+  if (to > monthStart) parts.push(cachedIdRange(puuid, Math.max(from, monthStart), to, false));
+  const lists = await Promise.all(parts);
+  return { ids: [...new Set(lists.flatMap((l) => l.ids))], complete: lists.every((l) => l.complete) };
 }
 
 type RawParticipant = {
@@ -367,20 +459,29 @@ export type ClubLeagueData = {
   accounts: { username: string; riotId: string; error: string | null }[];
   games: LeagueGame[];
   missing: number; // mecze, których jeszcze nie udało się pobrać (limit zapytań)
+  incomplete: boolean; // lista meczów któregoś gracza jeszcze niepełna (limit zapytań)
 };
 
 // Gry wszystkich członków klubu z zakresu [from, to) (epoch ms); wspólne mecze scalone w jeden wpis
 export async function getClubGames(from: number, to: number): Promise<ClubLeagueData> {
+  await syncCacheWithKey();
   const resolved = await Promise.all(
     LEAGUE_PLAYERS.map(async (lp) => {
       const fallbackId = `${lp.gameName}#${lp.tagLine}`;
       try {
         const acc = await getAccount(lp.gameName, lp.tagLine);
-        const ids = await getMatchIds(acc.puuid, from, to);
-        return { username: lp.username, riotId: `${acc.gameName}#${acc.tagLine}`, puuid: acc.puuid, ids, error: null };
+        const { ids, complete } = await getMatchIds(acc.puuid, from, to);
+        return {
+          username: lp.username,
+          riotId: `${acc.gameName}#${acc.tagLine}`,
+          puuid: acc.puuid,
+          ids,
+          complete,
+          error: null,
+        };
       } catch (e) {
         const error = e instanceof RiotError ? e.message : "Nie udało się pobrać danych";
-        return { username: lp.username, riotId: fallbackId, puuid: "", ids: [] as string[], error };
+        return { username: lp.username, riotId: fallbackId, puuid: "", ids: [] as string[], complete: true, error };
       }
     })
   );
@@ -429,6 +530,7 @@ export async function getClubGames(from: number, to: number): Promise<ClubLeague
     accounts: resolved.map(({ username, riotId, error }) => ({ username, riotId, error })),
     games,
     missing,
+    incomplete: resolved.some((r) => !r.complete),
   };
 }
 

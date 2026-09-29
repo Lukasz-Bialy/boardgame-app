@@ -1,6 +1,7 @@
 import { Swords, AlertTriangle } from "lucide-react";
 import LigaClient, { type LigaView } from "@/components/LigaClient";
 import {
+  EARLIEST_DAY,
   getClubGames,
   getDdragonVersion,
   GAME_MODES,
@@ -16,12 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const DEFAULT_DAYS = 7;
-const MAX_DAYS = 92;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function daysBetween(a: string, b: string) {
-  return Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
-}
 
 // Zakres dat z URL; domyślnie ostatni tydzień (z dzisiejszym dniem włącznie)
 function parseRange(od?: string, doDay?: string) {
@@ -29,7 +25,7 @@ function parseRange(od?: string, doDay?: string) {
   let to = doDay && DAY_RE.test(doDay) && doDay <= today ? doDay : today;
   let from = od && DAY_RE.test(od) ? od : shiftDay(to, -(DEFAULT_DAYS - 1));
   if (from > to) [from, to] = [to, from];
-  if (daysBetween(from, to) >= MAX_DAYS) from = shiftDay(to, -(MAX_DAYS - 1));
+  if (from < EARLIEST_DAY) from = EARLIEST_DAY;
   return { from, to, today };
 }
 
@@ -79,7 +75,7 @@ export default async function LigaPage({
         <LigaClient
           data={data}
           ver={ver}
-          range={{ from, to, today, maxDays: MAX_DAYS }}
+          range={{ from, to, today, earliest: EARLIEST_DAY }}
           initial={{
             players: pickedPlayers.length ? pickedPlayers : usernames,
             sizes: pickedSizes.length ? pickedSizes : [1, 2, 3, 4, 5],

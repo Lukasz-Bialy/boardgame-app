@@ -11,7 +11,7 @@ import type { ClubLeagueData, GameMode, LeagueGame, PlayerPerformance } from "@/
 
 export type LigaView = "mecze" | "wykresy" | "analityka";
 
-type Range = { from: string; to: string; today: string; maxDays: number };
+type Range = { from: string; to: string; today: string; earliest: string };
 
 const SIZES = [1, 2, 3, 4, 5];
 const sizeLabel = (n: number) => (n === 1 ? "Solo" : `${n} os.`);
@@ -28,7 +28,14 @@ const MODES: [GameMode, string, string?][] = [
     "Pozostałe kolejki: Normal Blind, Swiftplay, Quickplay, Clash, URF i inne tryby rotacyjne (np. One for All), gry z botami i gry niestandardowe.",
   ],
 ];
-const PRESETS = [7, 30, 90];
+// days = null → cała dostępna historia (Riot trzyma ok. 2 lat)
+const PRESETS: { days: number | null; label: string }[] = [
+  { days: 7, label: "7 dni" },
+  { days: 30, label: "30 dni" },
+  { days: 90, label: "90 dni" },
+  { days: 365, label: "Rok" },
+  { days: null, label: "Wszystko" },
+];
 const PAGE = 30;
 const REFRESH_MS = 35_000;
 
@@ -385,7 +392,7 @@ export default function LigaClient({
 
   // Brakujące mecze (limit Riot API) — odświeżamy sami, aż wszystko się dociągnie
   useEffect(() => {
-    if (data.missing === 0) return;
+    if (data.missing === 0 && !data.incomplete) return;
     const t = setTimeout(() => router.refresh(), REFRESH_MS);
     return () => clearTimeout(t);
   }, [data, router]);
@@ -409,17 +416,17 @@ export default function LigaClient({
   // Analityka waży premade sama — dostaje gry tylko po filtrze typu gry
   const modeGames = useMemo(() => data.games.filter((g) => modes.includes(g.mode)), [data.games, modes]);
 
-  const presetDays = to === range.today ? Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1 : null;
-  const minDay = shiftDay(range.today, -(range.maxDays - 1));
+  const presetFrom = (days: number | null) => (days === null ? range.earliest : shiftDay(range.today, -(days - 1)));
+  const presetOn = (days: number | null) => to === range.today && from === presetFrom(days);
 
   return (
     <div className="space-y-6">
       {/* Filtry — jeden pasek nad wszystkim, co filtrują */}
       <div className="panel flex flex-wrap items-start gap-x-8 gap-y-4 p-4">
         <FilterGroup label="Zakres dat" icon={<CalendarRange size={13} />}>
-          {PRESETS.map((d) => (
-            <Toggle key={d} on={presetDays === d} onClick={() => applyRange(shiftDay(range.today, -(d - 1)), range.today)}>
-              {d} dni
+          {PRESETS.map(({ days, label }) => (
+            <Toggle key={label} on={presetOn(days)} onClick={() => applyRange(presetFrom(days), range.today)}>
+              {label}
             </Toggle>
           ))}
           <span className="flex items-center gap-1.5">
@@ -427,7 +434,7 @@ export default function LigaClient({
               type="date"
               className="input h-8 w-auto px-2 py-0 text-xs"
               value={from}
-              min={minDay}
+              min={range.earliest}
               max={range.today}
               onChange={(e) => applyRange(e.target.value, to)}
               aria-label="Od"
@@ -437,7 +444,7 @@ export default function LigaClient({
               type="date"
               className="input h-8 w-auto px-2 py-0 text-xs"
               value={to}
-              min={minDay}
+              min={range.earliest}
               max={range.today}
               onChange={(e) => applyRange(from, e.target.value)}
               aria-label="Do"
@@ -486,11 +493,15 @@ export default function LigaClient({
         </FilterGroup>
       </div>
 
-      {data.missing > 0 && (
+      {(data.missing > 0 || data.incomplete) && (
         <div className="panel flex items-center gap-3 p-4 text-sm text-gold">
           <AlertTriangle size={16} className="shrink-0" />
-          Riot API ogranicza liczbę zapytań — brakuje jeszcze {data.missing} meczów. Strona sama je dociągnie w ciągu
-          kilku minut.
+          <span>
+            Riot API ogranicza liczbę zapytań (100 na 2 min) — pobieram historię:{" "}
+            {data.incomplete ? "lista meczów jest jeszcze niepełna" : `brakuje jeszcze ${data.missing} meczów`}
+            {data.missing > 0 && ` (ok. ${Math.ceil(data.missing / 95) * 2} min)`}. Strona dociąga je sama, pobrane
+            zostają w bazie na stałe.
+          </span>
         </div>
       )}
 
