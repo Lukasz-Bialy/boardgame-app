@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, X, ExternalLink } from "lucide-react";
+import { MessageCircle, X, ExternalLink, Maximize2, Minimize2 } from "lucide-react";
+
+const EXPANDED_KEY = "chat-expanded";
 
 /**
  * Czat ekipy = kanał z serwera Discord osadzony przez WidgetBot (https://widgetbot.io).
@@ -19,6 +21,22 @@ export default function ChatWidget({
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Okno powiększone na całą stronę; zapamiętywane
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    try {
+      setExpanded(localStorage.getItem(EXPANDED_KEY) === "1");
+    } catch {}
+  }, []);
+
+  function toggleExpanded() {
+    const next = !expanded;
+    setExpanded(next);
+    try {
+      localStorage.setItem(EXPANDED_KEY, next ? "1" : "0");
+    } catch {}
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -54,7 +72,12 @@ export default function ChatWidget({
           role="dialog"
           aria-label="Czat ekipy"
           aria-hidden={!open}
-          className={`${open ? "flex" : "hidden"} chat-pop fixed inset-x-2 bottom-2 z-40 h-[min(620px,calc(100dvh-5rem))] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-panel md:inset-x-auto md:bottom-6 md:right-6 md:w-[400px]`}
+          className={`${open ? "flex" : "hidden"} chat-pop fixed flex-col overflow-hidden bg-panel ${
+            expanded
+              ? // Na całą stronę — ponad nawigacją
+                "inset-0 z-50"
+              : "inset-x-2 bottom-2 z-40 h-[min(620px,calc(100dvh-5rem))] rounded-2xl border border-line shadow-panel md:inset-x-auto md:bottom-6 md:right-6 md:w-[400px]"
+          }`}
         >
           <div className="flex items-center gap-2 border-b border-line bg-surface/60 px-4 py-3">
             <MessageCircle size={17} className="text-felt" />
@@ -68,6 +91,14 @@ export default function ChatWidget({
             >
               Discord <ExternalLink size={12} />
             </a>
+            <button
+              onClick={toggleExpanded}
+              className="ml-2 text-muted transition hover:text-cream"
+              aria-label={expanded ? "Zmniejsz okno czatu" : "Powiększ okno czatu"}
+              title={expanded ? "Zmniejsz" : "Powiększ"}
+            >
+              {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
             <button onClick={() => setOpen(false)} className="ml-2 text-muted transition hover:text-cream" aria-label="Zamknij czat">
               <X size={18} />
             </button>

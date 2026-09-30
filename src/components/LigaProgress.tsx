@@ -112,9 +112,11 @@ export default function LigaProgress({
         });
       }
     }
-    // Połowy okresu wg czasu (nie wg liczby gier) — progres to zmiana w czasie
-    const start = Date.parse(range.from);
-    const mid = start + (Date.parse(range.to) + 86400000 - start) / 2;
+    // Połowy okresu wg czasu (nie wg liczby gier) — progres to zmiana w czasie. Liczone od pierwszej do ostatniej
+    // gry w zakresie, a nie od jego granic: przy „Wszystko” zakres zaczyna się w 2021 i cała historia wpadała
+    // do drugiej połowy
+    const times = [...per.values()].flat().map((g) => g.t);
+    const mid = times.length ? (Math.min(...times) + Math.max(...times)) / 2 : 0;
     return lineup.map((u) => ({
       username: u,
       roles: ROLES.map(([role, label]) => {
@@ -140,7 +142,7 @@ export default function LigaProgress({
         return { role, label, list, early, late, delta, why };
       }).filter((r) => r.list.length > 0),
     }));
-  }, [games, lineup, range.from, range.to]);
+  }, [games, lineup]);
 
   if (!lineup.length)
     return <div className="panel p-8 text-center text-sm text-muted">Zaznacz w filtrze „Gracze” osoby do analizy.</div>;
