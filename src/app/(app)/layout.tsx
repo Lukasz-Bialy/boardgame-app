@@ -10,6 +10,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await getSession();
   if (!session) redirect("/login");
 
+  // Czat = kanał Discorda przez WidgetBot; bez skonfigurowanych id widget się nie pokazuje
+  const discordServerId = process.env.DISCORD_SERVER_ID;
+  const discordChannelId = process.env.DISCORD_CHANNEL_ID;
+
   return (
     <div className="flex min-h-screen flex-col">
       <Nav session={session} />
@@ -17,11 +21,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pt-24">
         <div className="mx-auto w-full max-w-[1440px]">{children}</div>
       </main>
-      <ChatWidget
-        currentUser={session.username}
-        isAdmin={session.role === "admin"}
-        players={PLAYERS.map((p) => ({ username: p.username, displayName: p.displayName }))}
-      />
+      {discordServerId && discordChannelId && (
+        <ChatWidget
+          serverId={discordServerId}
+          channelId={discordChannelId}
+          displayName={PLAYERS.find((p) => p.username === session.username)?.displayName ?? session.username}
+        />
+      )}
     </div>
   );
 }

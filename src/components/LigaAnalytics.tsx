@@ -1,11 +1,24 @@
 "use client";
 
-import { useMemo } from "react";
-import { Info, Sparkles, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Info, LayoutGrid, LineChart, Microscope, Percent, Repeat, Sparkles, Swords, Trophy, Users } from "lucide-react";
 import { Avatar } from "@/components/ui";
 import { displayNameOf } from "@/lib/users";
 import { winrateStyle } from "@/components/LigaCharts";
 import type { LeagueGame } from "@/lib/riot";
+import LigaCounters from "@/components/LigaCounters";
+import LigaHabits from "@/components/LigaHabits";
+import LigaDeepAnalysis from "@/components/LigaDeepAnalysis";
+import LigaProgress from "@/components/LigaProgress";
+
+export type AnalyticsTab = "role" | "progres" | "kontry" | "nawyki" | "analiza";
+const TABS: [AnalyticsTab, string, typeof Users][] = [
+  ["role", "Role", LayoutGrid],
+  ["progres", "Progres", LineChart],
+  ["kontry", "Kontry i linie", Swords],
+  ["nawyki", "Nawyki", Repeat],
+  ["analiza", "Analiza meczów", Microscope],
+];
 
 const ROLES = [
   ["TOP", "Top"],
@@ -27,7 +40,9 @@ const roleLabel = (r: Role) => ROLES.find((x) => x[0] === r)![1];
    (A = siła ściągania, w jednostkach wagi). Wartość wyjściowa: 44% bez doświadczenia
    na roli, rośnie do 50% przy 10+ grach — brak ogrania na roli obniża ocenę.
    Championy: ogranie championa to głównie umiejętność gracza, więc waga gier spoza składu
-   jest tu wyższa (min. W_CHAMP_MIN), a przyciąganie do 50% mocniejsze. */
+   jest tu wyższa (min. W_CHAMP_MIN), a przyciąganie do 50% mocniejsze.
+   Tryb „wyniki”: zamiast wygranych średni score Harnasia (0–100, średnia każdej roli = 50) z tymi samymi
+   wagami i tym samym przyciąganiem — kto gra na danej roli najlepiej, niezależnie od wyniku meczu. */
 const W_EXACT = 1;
 const W_MIN = 0.1;
 const W_MAX_OTHER = 0.3;
@@ -35,15 +50,51 @@ const A_ROLE = 5;
 const A_CHAMP = 4;
 const W_CHAMP_MIN = 0.4;
 
-type Stat = { w: number; n: number; wins: number; games: number; exact: number };
-const empty = (): Stat => ({ w: 0, n: 0, wins: 0, games: 0, exact: 0 });
+// w/n/wins/games — winrate; ps/pn/praw/pg — score Harnasia (tylko gry z oceną, bez meczów ze starego zapisu)
+type Stat = {
+  w: number;
+  n: number;
+  wins: number;
+  games: number;
+  exact: number;
+  ps: number;
+  pn: number;
+  praw: number;
+  pg: number;
+};
+const empty = (): Stat => ({ w: 0, n: 0, wins: 0, games: 0, exact: 0, ps: 0, pn: 0, praw: 0, pg: 0 });
 
-function roleScore(s: Stat) {
-  const prior = 0.44 + 0.06 * Math.min(1, s.games / 10);
-  return (s.w + A_ROLE * prior) / (s.n + A_ROLE);
-}
+type AnalyticsMode = "winrate" | "wyniki";
 
-const champScore = (s: Stat) => (s.w + A_CHAMP * 0.5) / (s.n + A_CHAMP);
+// Obie miary w skali 0–1 (score / 100), żeby ta sama maszyneria wybierała podział ról i kolorowała macierz
+const prior = (games: number) => 0.44 + 0.06 * Math.min(1, games / 10);
+const MEASURES = {
+  winrate: {
+    role: (s: Stat) => (s.w + A_ROLE * prior(s.games)) / (s.n + A_ROLE),
+    champ: (s: Stat) => (s.w + A_CHAMP * 0.5) / (s.n + A_CHAMP),
+    games: (s: Stat) => s.games,
+    weight: (s: Stat) => s.n,
+    fmt: (x: number) => `${Math.round(x * 100)}%`,
+    record: (s: Stat) => `${s.wins}–${s.games - s.wins}`,
+    label: "szacowany winrate",
+    unit: "pp",
+    tint: (x: number) => x,
+    scale: ["0%", "100%"],
+  },
+  wyniki: {
+    role: (s: Stat) => (s.ps / 100 + A_ROLE * prior(s.pg)) / (s.pn + A_ROLE),
+    champ: (s: Stat) => (s.ps / 100 + A_CHAMP * 0.5) / (s.pn + A_CHAMP),
+    games: (s: Stat) => s.pg,
+    weight: (s: Stat) => s.pn,
+    fmt: (x: number) => (x * 100).toFixed(1),
+    record: (s: Stat) => (s.pg ? `śr. ${(s.praw / s.pg).toFixed(1)}` : "—"),
+    label: "szacowany score",
+    unit: "pkt",
+    // Score na roli po przyciąganiu rzadko wychodzi poza 40–60 — skala kolorów 30–70, żeby różnice było widać
+    tint: (x: number) => Math.min(1, Math.max(0, 0.5 + (x - 0.5) * 2.5)),
+    scale: ["30", "70"],
+  },
+};
 
 function gameWeight(teamClub: string[], lineup: Set<string>): { weight: number; exact: boolean } {
   const k = lineup.size;
@@ -75,8 +126,6 @@ function assignments(players: string[], score: (u: string, r: Role) => number): 
   return out.sort((a, b) => b.score - a.score);
 }
 
-const pct = (x: number) => `${Math.round(x * 100)}%`;
-
 // Pewność wg ważonej liczby gier (gra tego składu = 1, solo = 0,1)
 function confidence(n: number) {
   if (n >= 8) return { label: "wysoka pewność", cls: "text-cream" };
@@ -84,16 +133,16 @@ function confidence(n: number) {
   return { label: "niska pewność", cls: "text-gold" };
 }
 
-function diffLabel(d: number) {
+function diffLabel(d: number, unit: string) {
   const pp = Math.round(d * 1000) / 10;
-  return pp === 0 ? "tyle samo" : `${pp > 0 ? "+" : "−"}${Math.abs(pp).toLocaleString("pl-PL")} pp`;
+  return pp === 0 ? "tyle samo" : `${pp > 0 ? "+" : "−"}${Math.abs(pp).toLocaleString("pl-PL")} ${unit}`;
 }
 const gier = (n: number) =>
   n === 1 ? "1 gra" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? `${n} gry` : `${n} gier`;
 
 /* ─── Widok ─────────────────────────────────────────────────────────────────── */
 
-export default function LigaAnalytics({
+function RolesView({
   games,
   lineup,
   ver,
@@ -106,6 +155,9 @@ export default function LigaAnalytics({
   rangeDays: number;
   onWiderRange: () => void;
 }) {
+  const [mode, setMode] = useState<AnalyticsMode>("winrate");
+  const M = MEASURES[mode];
+
   const model = useMemo(() => {
     const set = new Set(lineup);
     const role = new Map<string, Map<Role, Stat>>();
@@ -116,6 +168,7 @@ export default function LigaAnalytics({
     }
     const exactGames = new Set<string>();
     let roleGames = 0;
+    let scoredGames = 0;
 
     for (const g of games) {
       if (g.arena) continue;
@@ -126,12 +179,19 @@ export default function LigaAnalytics({
         const { weight, exact } = gameWeight(teamClub, set);
         if (exact) exactGames.add(g.id);
         roleGames++;
+        if (p.score !== null) scoredGames++;
         const add = (s: Stat, weight: number) => {
           s.n += weight;
           s.w += p.win ? weight : 0;
           s.games++;
           s.wins += p.win ? 1 : 0;
           s.exact += exact ? 1 : 0;
+          if (p.score !== null) {
+            s.ps += p.score * weight;
+            s.pn += weight;
+            s.praw += p.score;
+            s.pg++;
+          }
         };
         add(role.get(p.username)!.get(r)!, weight);
         const cm = champ.get(p.username)!.get(r)!;
@@ -140,9 +200,13 @@ export default function LigaAnalytics({
       }
     }
 
-    const ranked = lineup.length ? assignments(lineup, (u, r) => roleScore(role.get(u)!.get(r)!)) : [];
-    return { role, champ, ranked, exactGames: exactGames.size, roleGames };
+    return { role, champ, exactGames: exactGames.size, roleGames, scoredGames };
   }, [games, lineup]);
+
+  const ranked = useMemo(
+    () => (lineup.length ? assignments(lineup, (u, r) => M.role(model.role.get(u)!.get(r)!)) : []),
+    [model, lineup, M]
+  );
 
   if (lineup.length === 0) {
     return (
@@ -152,18 +216,42 @@ export default function LigaAnalytics({
     );
   }
 
-  const best = model.ranked[0];
-  const alternatives = model.ranked.slice(1, 3);
-  const thin = model.roleGames < 15 * lineup.length;
+  const best = ranked[0];
+  const alternatives = ranked.slice(1, 3);
+  const appearances = mode === "winrate" ? model.roleGames : model.scoredGames;
+  const thin = appearances < 15 * lineup.length;
+  const unscored = model.roleGames - model.scoredGames;
 
   const topChamps = (u: string, r: Role) =>
     [...model.champ.get(u)!.get(r)!.entries()]
-      .map(([name, s]) => ({ name, s, score: champScore(s) }))
-      .sort((a, b) => b.score - a.score || b.s.games - a.s.games)
+      .filter(([, s]) => M.games(s) > 0)
+      .map(([name, s]) => ({ name, s, score: M.champ(s) }))
+      .sort((a, b) => b.score - a.score || M.games(b.s) - M.games(a.s))
       .slice(0, 3);
 
   return (
     <div className="space-y-4">
+      <div className="inline-flex rounded-xl bg-panel/60 p-1" role="tablist" aria-label="Podstawa rekomendacji">
+        {(
+          [
+            ["winrate", "Według winrate", Percent],
+            ["wyniki", "Według wyników", Trophy],
+          ] as const
+        ).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={mode === key}
+            onClick={() => setMode(key)}
+            className={`flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-medium transition ${
+              mode === key ? "bg-felt/[0.14] text-felt shadow-[inset_0_0_0_1px_var(--nav-active-ring)]" : "text-muted hover:text-cream"
+            }`}
+          >
+            <Icon size={14} /> {label}
+          </button>
+        ))}
+      </div>
+
       {/* Kontekst: skład i ilość danych */}
       <div className="panel flex flex-wrap items-center gap-x-8 gap-y-3 p-4">
         <div className="flex items-center gap-3">
@@ -186,9 +274,21 @@ export default function LigaAnalytics({
           </div>
         </div>
         <div>
-          <div className="text-xl font-bold">{model.roleGames}</div>
-          <div className="text-[11px] uppercase tracking-wider text-muted">występów na rolach</div>
+          <div className="text-xl font-bold">{appearances}</div>
+          <div className="text-[11px] uppercase tracking-wider text-muted">
+            {mode === "winrate" ? "występów na rolach" : "ocenionych występów"}
+          </div>
         </div>
+        {mode === "wyniki" && unscored > 0 && (
+          <div
+            className="flex max-w-md items-center gap-2 text-xs text-muted"
+            title="Starsze mecze w bazie nie mają statystyk potrzebnych do score'u"
+          >
+            <Info size={14} className="shrink-0" />
+            {gier(unscored)} bez oceny (stary zapis) — przelicz ich miesiąc w „Rankingu Harnasia” albo wybierz zakres
+            do 31 dni.
+          </div>
+        )}
         {thin && (
           <div className="flex items-center gap-2 text-xs text-gold">
             <Info size={14} className="shrink-0" /> Mało danych — rekomendacje są orientacyjne.
@@ -205,6 +305,9 @@ export default function LigaAnalytics({
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-bold">
           <Sparkles size={18} /> Rekomendowany podział ról
+          <span className="text-sm font-normal text-muted">
+            · {mode === "winrate" ? "kto na roli najczęściej wygrywa" : "kto na roli gra najlepiej"}
+          </span>
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {ROLE_KEYS.map((r) => {
@@ -226,7 +329,7 @@ export default function LigaAnalytics({
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{displayNameOf(u)}</div>
                     <div className="text-xs text-muted">
-                      {s.games ? `na tej roli: ${gier(s.games)} · ${s.wins}–${s.games - s.wins}` : "bez gier na tej roli"}
+                      {M.games(s) ? `na tej roli: ${gier(M.games(s))} · ${M.record(s)}` : "bez gier na tej roli"}
                     </div>
                     {model.exactGames > 0 && (
                       <div className="text-xs text-muted">
@@ -236,10 +339,10 @@ export default function LigaAnalytics({
                   </div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold">{pct(roleScore(s))}</div>
+                  <div className="text-3xl font-bold">{M.fmt(M.role(s))}</div>
                   <div className="text-[11px] uppercase tracking-wider text-muted">
-                    szacowany winrate ·{" "}
-                    <span className={confidence(s.n).cls}>{confidence(s.n).label}</span>
+                    {M.label} ·{" "}
+                    <span className={confidence(M.weight(s)).cls}>{confidence(M.weight(s)).label}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5 border-t border-line/50 pt-3">
@@ -258,9 +361,9 @@ export default function LigaAnalytics({
                           className="h-6 w-6 rounded-md ring-1 ring-line/60"
                         />
                         <span className="min-w-0 flex-1 truncate text-xs font-medium">{name}</span>
-                        <span className="text-xs font-semibold tabular-nums">{pct(score)}</span>
-                        <span className="w-9 text-right text-[11px] tabular-nums text-muted">
-                          {cs.wins}–{cs.games - cs.wins}
+                        <span className="text-xs font-semibold tabular-nums">{M.fmt(score)}</span>
+                        <span className="w-12 text-right text-[11px] tabular-nums text-muted">
+                          {mode === "winrate" ? M.record(cs) : gier(cs.pg)}
                         </span>
                       </div>
                     ))
@@ -285,7 +388,7 @@ export default function LigaAnalytics({
                   ) : null;
                 })}
                 <span className="tabular-nums">
-                  średnio {pct(a.score)} ({diffLabel(a.score - best.score)})
+                  średnio {M.fmt(a.score)} ({diffLabel(a.score - best.score, M.unit)})
                 </span>
               </div>
             ))}
@@ -299,16 +402,18 @@ export default function LigaAnalytics({
           <div>
             <h3 className="font-display text-lg font-bold">Gracze na rolach</h3>
             <p className="text-xs text-muted">
-              Szacowany winrate po wagach · pod spodem surowy bilans W–P · obwódka = rekomendacja
+              {mode === "winrate"
+                ? "Szacowany winrate po wagach · pod spodem surowy bilans W–P · obwódka = rekomendacja"
+                : "Szacowany score po wagach · pod spodem surowa średnia · obwódka = rekomendacja"}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-muted" aria-label="Skala winrate">
-            <span>0%</span>
+          <div className="flex items-center gap-2 text-[11px] text-muted" aria-label="Skala">
+            <span>{M.scale[0]}</span>
             <span
               className="h-2.5 w-28 rounded-full"
               style={{ background: "linear-gradient(90deg, var(--viz-neg), var(--viz-mid), var(--viz-pos))" }}
             />
-            <span>100%</span>
+            <span>{M.scale[1]}</span>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -337,14 +442,14 @@ export default function LigaAnalytics({
                   {ROLE_KEYS.map((r) => {
                     const s = model.role.get(u)!.get(r)!;
                     const picked = best.roles[u] === r;
-                    if (s.games === 0)
+                    if (M.games(s) === 0)
                       return (
                         <td
                           key={r}
                           className={`h-12 rounded-md bg-panel2/40 text-center text-xs text-muted/60 ${
                             picked ? "ring-2 ring-cream" : ""
                           }`}
-                          title={`${displayNameOf(u)} · ${roleLabel(r)}: brak gier (ocena ${pct(roleScore(s))})`}
+                          title={`${displayNameOf(u)} · ${roleLabel(r)}: brak gier (ocena ${M.fmt(M.role(s))})`}
                         >
                           —
                         </td>
@@ -353,13 +458,11 @@ export default function LigaAnalytics({
                       <td
                         key={r}
                         className={`h-12 rounded-md text-center ${picked ? "ring-2 ring-cream" : ""}`}
-                        style={winrateStyle(roleScore(s))}
-                        title={`${displayNameOf(u)} · ${roleLabel(r)}: ${gier(s.games)}, w tym ${s.exact} z ${model.exactGames} gier tego składu`}
+                        style={winrateStyle(M.tint(M.role(s)))}
+                        title={`${displayNameOf(u)} · ${roleLabel(r)}: ${gier(M.games(s))}, w tym ${s.exact} z ${model.exactGames} gier tego składu`}
                       >
-                        <div className="text-sm font-bold leading-tight">{pct(roleScore(s))}</div>
-                        <div className="text-[10px] leading-tight tabular-nums opacity-80">
-                          {s.wins}–{s.games - s.wins}
-                        </div>
+                        <div className="text-sm font-bold leading-tight">{M.fmt(M.role(s))}</div>
+                        <div className="text-[10px] leading-tight tabular-nums opacity-80">{M.record(s)}</div>
                       </td>
                     );
                   })}
@@ -385,16 +488,19 @@ export default function LigaAnalytics({
             — tym wyższą, im więcej osób z wybranego składu grało razem.
           </li>
           <li>
-            Przy małej liczbie gier winrate jest przyciągany do wartości wyjściowej: 44% dla roli bez doświadczenia, do
-            50% przy 10+ grach. Dzięki temu 2 wygrane na nowej roli nie dają 100%, a rola nieograna nie wygrywa z
-            mainem.
+            Przy małej liczbie gier ocena jest przyciągana do wartości wyjściowej: 44% (44 pkt) dla roli bez
+            doświadczenia, do 50% (50 pkt) przy 10+ grach. Dzięki temu 2 wygrane na nowej roli nie dają 100%, a rola
+            nieograna nie wygrywa z mainem.
           </li>
+          <li>Podział ról to przypisanie z najwyższą średnią oceną spośród wszystkich możliwych.</li>
           <li>
-            Podział ról to przypisanie z najwyższym średnim szacowanym winrate spośród wszystkich możliwych.
+            <span className="text-cream">Według wyników</span> — zamiast wygranych liczy się score Harnasia z każdego
+            meczu (0–100, porównanie z rywalem z tej samej roli, średnia każdej roli to 50). Pokazuje, kto na danej
+            pozycji gra najlepiej, nawet gdy drużyna przegrywa. Starsze mecze bez potrzebnych statystyk są pomijane.
           </li>
           <li>
             Championy: gry spoza składu mają tu wagę co najmniej 0,40 — to, czy ktoś umie grać danym championem, zależy
-            głównie od niego, nie od składu. Pojedyncza wygrana nie przebije championa ogranego z dobrym bilansem.
+            głównie od niego, nie od składu. Pojedynczy dobry mecz nie przebije championa ogranego z dobrym wynikiem.
           </li>
           <li>
             Pewność zależy od ważonej liczby gier na roli: niska poniżej 3, wysoka od 8 (gra tego składu liczy się jak 10
@@ -402,6 +508,61 @@ export default function LigaAnalytics({
           </li>
         </ul>
       </details>
+    </div>
+  );
+}
+
+export default function LigaAnalytics({
+  games,
+  lineup,
+  ver,
+  rangeDays,
+  onWiderRange,
+  tab,
+  onTab,
+  target,
+  range,
+  onLastMonth,
+}: {
+  games: LeagueGame[]; // już po filtrze typu gry
+  lineup: string[];
+  ver: string;
+  rangeDays: number;
+  onWiderRange: () => void;
+  tab: AnalyticsTab;
+  onTab: (t: AnalyticsTab) => void;
+  target: string | null; // mecz do analizy wybrany w historii
+  range: { from: string; to: string; today: string };
+  onLastMonth: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5 border-b border-line/60 pb-3" role="tablist" aria-label="Sekcje analityki">
+        {TABS.map(([key, label, Icon]) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => onTab(key)}
+            className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition ${
+              tab === key ? "border-felt/50 bg-felt/[0.14] text-cream" : "border-transparent text-muted hover:text-cream"
+            }`}
+          >
+            <Icon size={15} /> {label}
+          </button>
+        ))}
+      </div>
+      {tab === "role" ? (
+        <RolesView games={games} lineup={lineup} ver={ver} rangeDays={rangeDays} onWiderRange={onWiderRange} />
+      ) : tab === "progres" ? (
+        <LigaProgress games={games} lineup={lineup} range={range} onLastMonth={onLastMonth} />
+      ) : tab === "kontry" ? (
+        <LigaCounters games={games} lineup={lineup} ver={ver} />
+      ) : tab === "nawyki" ? (
+        <LigaHabits games={games} lineup={lineup} />
+      ) : (
+        <LigaDeepAnalysis games={games} lineup={lineup} ver={ver} target={target} />
+      )}
     </div>
   );
 }

@@ -166,6 +166,35 @@ CREATE TABLE IF NOT EXISTS riot_cache (
   data TEXT NOT NULL,           -- JSON
   updated_at TEXT NOT NULL
 );
+
+-- Mecze ligi przeliczone raz przy pobraniu (Harnaś, premade, czas polski) — strona czyta gotowe wiersze
+-- zamiast parsować surowe mecze z riot_cache przy każdym wejściu
+CREATE TABLE IF NOT EXISTS lol_games (
+  id TEXT PRIMARY KEY,
+  started_at INTEGER NOT NULL,  -- epoch ms rozpoczęcia gry (po tym filtruje zakres dat)
+  mode TEXT NOT NULL,           -- GameMode
+  src_v INTEGER NOT NULL,       -- wersja surowego zapisu (TRIM_VERSION) — starsze nie mają statystyk Harnasia
+  dv INTEGER NOT NULL,          -- wersja przeliczenia (DERIVED_VERSION)
+  data TEXT NOT NULL            -- LeagueGame (JSON)
+);
+CREATE INDEX IF NOT EXISTS lol_games_started ON lol_games(started_at);
+
+CREATE TABLE IF NOT EXISTS lol_game_players (
+  game_id TEXT NOT NULL REFERENCES lol_games(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  started_at INTEGER NOT NULL,
+  mode TEXT NOT NULL,
+  party_size INTEGER NOT NULL,
+  remake INTEGER NOT NULL,
+  win INTEGER NOT NULL,
+  champion TEXT NOT NULL,
+  kills INTEGER NOT NULL,
+  deaths INTEGER NOT NULL,
+  assists INTEGER NOT NULL,
+  harnas INTEGER NOT NULL,
+  PRIMARY KEY (game_id, username)
+);
+CREATE INDEX IF NOT EXISTS lol_game_players_user ON lol_game_players(username, started_at);
 `;
 
 let initPromise: Promise<void> | null = null;

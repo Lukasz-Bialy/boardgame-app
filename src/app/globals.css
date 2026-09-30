@@ -508,3 +508,237 @@ html.light {
   --viz-neg: #e34948;
   --viz-mid: #f0efec;
 }
+
+/* ─── Liga: Harnaś — najlepszy gracz meczu ──────────────────────────────── */
+
+:root {
+  --harnas-hi: 255 240 190; /* rozbłysk na złocie */
+}
+html.light {
+  --harnas-hi: 214 160 40;
+}
+
+.harnas-game {
+  border-color: rgb(var(--c-gold) / 0.55);
+  box-shadow: var(--shadow-panel), 0 0 34px -12px rgb(var(--c-gold) / 0.6);
+}
+
+.harnas-row {
+  isolation: isolate;
+  margin: 6px 0;
+  border-radius: 0.875rem;
+  background:
+    radial-gradient(60% 140% at 0% 50%, rgb(var(--c-gold) / 0.3), transparent 70%),
+    linear-gradient(100deg, rgb(var(--c-gold) / 0.16), rgb(var(--c-gold) / 0.06) 50%, rgb(var(--c-gold) / 0.14));
+  box-shadow: inset 0 0 0 1.5px rgb(var(--c-gold) / 0.7), 0 0 26px -6px rgb(var(--c-gold) / 0.65);
+}
+
+/* Duża korona w tle wiersza, za wynikiem */
+.harnas-ghost {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  color: rgb(var(--c-gold));
+  opacity: 0.1;
+  transform: translateY(-50%) rotate(-14deg);
+}
+
+/* Przebiegający po wierszu połysk */
+.harnas-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgb(var(--harnas-hi) / 0.18) 46%,
+    rgb(var(--harnas-hi) / 0.4) 50%,
+    rgb(var(--harnas-hi) / 0.18) 54%,
+    transparent 62%
+  );
+  background-size: 250% 100%;
+  animation: harnas-shine 3.6s ease-in-out infinite;
+}
+
+@keyframes harnas-shine {
+  0% { background-position: 100% 0; }
+  55%, 100% { background-position: 0% 0; }
+}
+
+.harnas-card {
+  border-color: rgb(var(--c-gold) / 0.6);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(var(--c-gold) / 0.2), transparent 62%),
+    rgb(var(--c-panel));
+  box-shadow: var(--shadow-panel), 0 0 44px -12px rgb(var(--c-gold) / 0.7);
+}
+
+/* Awatar Harnasia: obracający się złoty pierścień, pulsująca poświata i kufel piwa w rogu */
+@property --harnas-spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.harnas-avatar {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 9999px;
+}
+
+.harnas-avatar-lg {
+  padding: 5px;
+}
+
+.harnas-avatar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--harnas-spin),
+    rgb(var(--c-gold-dark)),
+    rgb(var(--harnas-hi)),
+    rgb(var(--c-gold)),
+    rgb(var(--c-gold-dark)) 50%,
+    rgb(var(--harnas-hi)) 75%,
+    rgb(var(--c-gold-dark))
+  );
+  animation: harnas-spin 3s linear infinite;
+}
+
+.harnas-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  z-index: -2;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgb(var(--c-gold) / 0.85), transparent 70%);
+  filter: blur(6px);
+  animation: harnas-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes harnas-spin {
+  to { --harnas-spin: 360deg; }
+}
+
+@keyframes harnas-glow {
+  50% { opacity: 0.45; transform: scale(1.12); }
+}
+
+.harnas-beer {
+  position: absolute;
+  z-index: 1;
+  right: -11px;
+  bottom: -7px;
+  font-size: 19px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgb(var(--c-gold) / 0.9)) drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
+  transform: rotate(-14deg);
+  transform-origin: 30% 90%;
+  animation: harnas-beer 3.2s ease-in-out infinite;
+}
+
+.harnas-avatar-lg .harnas-beer {
+  right: -16px;
+  bottom: -8px;
+  font-size: 32px;
+}
+
+/* Co kilka sekund kufel unosi się do toastu i stuka */
+@keyframes harnas-beer {
+  0%, 72%, 100% { transform: rotate(-14deg); }
+  78% { transform: translateY(-3px) rotate(-32deg) scale(1.12); }
+  82% { transform: translateY(-3px) rotate(-8deg) scale(1.12); }
+  86% { transform: translateY(-2px) rotate(-26deg) scale(1.06); }
+  92% { transform: rotate(-14deg); }
+}
+
+/* Mieniący się napis „Harnaś” */
+.harnas-badge {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--c-gold-dark)),
+    rgb(var(--c-gold)) 30%,
+    rgb(var(--harnas-hi)) 50%,
+    rgb(var(--c-gold)) 70%,
+    rgb(var(--c-gold-dark))
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: harnas-shimmer 2.6s linear infinite;
+}
+
+@keyframes harnas-shimmer {
+  to { background-position: -200% center; }
+}
+
+.harnas-badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--c-gold) / 0.7);
+  background: rgb(var(--c-gold) / 0.16);
+  box-shadow: 0 0 14px -2px rgb(var(--c-gold) / 0.55);
+  color: rgb(var(--c-gold));
+  font-size: 12px;
+}
+
+/* Iskierki */
+.harnas-sparks {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.harnas-sparks i {
+  position: absolute;
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1;
+  color: rgb(var(--c-gold));
+  text-shadow: 0 0 6px rgb(var(--c-gold) / 0.9);
+  opacity: 0;
+  animation: harnas-twinkle 2.8s ease-in-out infinite;
+}
+
+.harnas-sparks i:nth-child(1) { left: 5%; top: 16%; }
+.harnas-sparks i:nth-child(2) { left: 24%; top: 70%; font-size: 10px; animation-delay: 0.6s; }
+.harnas-sparks i:nth-child(3) { left: 52%; top: 10%; animation-delay: 1.2s; }
+.harnas-sparks i:nth-child(4) { left: 76%; top: 72%; font-size: 15px; animation-delay: 1.8s; }
+.harnas-sparks i:nth-child(5) { left: 93%; top: 20%; font-size: 10px; animation-delay: 2.3s; }
+
+@keyframes harnas-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0); }
+  50% { opacity: 0.9; transform: scale(1.1) rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .harnas-row::before,
+  .harnas-avatar::before,
+  .harnas-avatar::after,
+  .harnas-beer,
+  .harnas-badge,
+  .harnas-sparks i {
+    animation: none;
+  }
+  .harnas-sparks i { opacity: 0.6; }
+}
