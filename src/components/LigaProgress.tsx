@@ -240,7 +240,7 @@ export default function LigaProgress({
       <p className="text-xs text-muted">
         Wykres: score każdego meczu (kropki) i średnia krocząca z 5 gier (linia), przerywana linia = 50. Winrate zależy
         od całej drużyny, dlatego trend liczymy ze score&apos;u — porównuje gracza z typowym wynikiem na roli.
-        {unscored && " Część meczów nie ma score'u (stary zapis) — przy zakresie do 31 dni dociągają się same."}
+        {unscored && " Część meczów nie ma score'u (stary zapis) — dociągają się same w ciągu kilku minut."}
       </p>
     </div>
   );

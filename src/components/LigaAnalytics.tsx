@@ -285,8 +285,7 @@ function RolesView({
             title="Starsze mecze w bazie nie mają statystyk potrzebnych do score'u"
           >
             <Info size={14} className="shrink-0" />
-            {gier(unscored)} bez oceny (stary zapis) — przelicz ich miesiąc w „Rankingu Harnasia” albo wybierz zakres
-            do 31 dni.
+            {gier(unscored)} bez oceny (stary zapis) — dociągają się same z Riot API, to potrwa kilka minut.
           </div>
         )}
         {thin && (
