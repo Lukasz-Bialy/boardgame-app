@@ -1,7 +1,10 @@
-// Zahardkodowane konta. Hasła można nadpisać zmiennymi środowiskowymi (patrz .env.example),
-// w przeciwnym razie używane są domyślne poniżej. ZMIEŃ JE przed wdrożeniem!
+// Zahardkodowane konta. Hasła startowe pochodzą ze zmiennych środowiskowych PW_* (patrz .env.example).
+// Domyślne hasła poniżej działają tylko lokalnie — są jawne w repo, więc na produkcji konto bez PW_*
+// (i bez hasła zmienionego w aplikacji) nie da się zalogować.
 
 export type Role = "admin" | "user";
+
+const devDefault = (password: string) => (process.env.NODE_ENV === "production" ? "" : password);
 
 export interface AppUser {
   username: string; // login
@@ -11,11 +14,11 @@ export interface AppUser {
 }
 
 export const USERS: AppUser[] = [
-  { username: "Bulczy", displayName: "Michał", password: process.env.PW_BULCZY ?? "bulczy123", role: "admin" },
-  { username: "Chleboldi", displayName: "Maciek", password: process.env.PW_CHLEBOLDI ?? "chleboldi123", role: "user" },
-  { username: "Eldorida", displayName: "Paweł", password: process.env.PW_ELDORIDA ?? "eldorida123", role: "user" },
-  { username: "Vrenshrrgn", displayName: "Miłek", password: process.env.PW_VRENSHRRGN ?? "vrenshrrgn123", role: "user" },
-  { username: "Entey", displayName: "Łukasz", password: process.env.PW_ENTEY ?? "entey123", role: "admin" },
+  { username: "Bulczy", displayName: "Michał", password: process.env.PW_BULCZY ?? devDefault("bulczy123"), role: "admin" },
+  { username: "Chleboldi", displayName: "Maciek", password: process.env.PW_CHLEBOLDI ?? devDefault("chleboldi123"), role: "user" },
+  { username: "Eldorida", displayName: "Paweł", password: process.env.PW_ELDORIDA ?? devDefault("eldorida123"), role: "user" },
+  { username: "Vrenshrrgn", displayName: "Miłek", password: process.env.PW_VRENSHRRGN ?? devDefault("vrenshrrgn123"), role: "user" },
+  { username: "Entey", displayName: "Łukasz", password: process.env.PW_ENTEY ?? devDefault("entey123"), role: "admin" },
 ];
 
 export function findUserByLogin(username: string): AppUser | undefined {

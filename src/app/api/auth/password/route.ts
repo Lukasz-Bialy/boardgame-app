@@ -1,4 +1,5 @@
 import { withAuth, ok, bad } from "@/lib/api";
+import { endOtherSessions } from "@/lib/auth";
 import { findUserByLogin } from "@/lib/users";
 import { checkPassword, setPassword, MIN_PASSWORD_LENGTH } from "@/lib/passwords";
 
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
     if (next === current) return bad("Nowe hasło musi się różnić od obecnego");
 
     await setPassword(user.username, next);
+    // Po zmianie hasła wylogowujemy pozostałe urządzenia — skradziona sesja przestaje działać
+    await endOtherSessions(user.username);
     return ok();
   });
 }

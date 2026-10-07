@@ -33,7 +33,8 @@ function safeEqual(a: string, b: string): boolean {
 export async function checkPassword(user: AppUser, password: string): Promise<boolean> {
   const rows = await q<{ hash: string }>("SELECT hash FROM user_passwords WHERE username = ?", [user.username]);
   if (rows[0]) return verifyHash(password, rows[0].hash);
-  return safeEqual(password, user.password);
+  // Puste hasło startowe = brak PW_* na produkcji → konto zablokowane
+  return user.password !== "" && safeEqual(password, user.password);
 }
 
 export async function setPassword(username: string, password: string): Promise<void> {
