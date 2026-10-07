@@ -14,6 +14,7 @@ Stack: **Next.js 15** (App Router) · **TypeScript** · **Tailwind CSS** · **li
 - **Ankiety** — „w co zagrać" (gry z kolekcji + własne opcje) oraz „kiedy się spotkać" (terminy). Głosowanie wielokrotne, wyniki na żywo, **link do udostępniania**, zamykanie/otwieranie i usuwanie przez autora lub admina.
 - **Kalendarz** — siatka miesiąca z zaznaczonymi spotkaniami + lista.
 - **Wishlista** — gry, które warto kupić (link, zdjęcie, notatka).
+- **Przygoda** — gra fabularna w stylu D&D (play by post) z AI jako Mistrzem Gry (Google Gemini): kreator postaci wg SRD 5.1, rundy asynchroniczne (MG odpowiada, gdy wszyscy zagrają, po 24 h albo po „Popchnij fabułę”), animowane kości 3D (rzuca serwer), generowane portrety, sceny i mapy. Wymaga `GEMINI_API_KEY`; obrazki opcjonalnie przez Cloudflare Workers AI — patrz `.env.example`.
 
 ## Uruchomienie lokalne
 

@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <Nav session={session} />
       {/* pb-24: miejsce na przycisk czatu w prawym dolnym rogu, żeby nie zasłaniał końca treści */}
-      <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pt-24">
+      <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pt-8">
         <div className="mx-auto w-full max-w-[1440px]">{children}</div>
       </main>
       {discordServerId && discordChannelId && (

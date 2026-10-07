@@ -13,7 +13,7 @@ const sans = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" })
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Planszówki — klub",
+  title: "PawnSpawn",
   description: "Kolekcja gier, rozgrywki, ankiety i kalendarz spotkań",
 };
 

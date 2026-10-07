@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
-  BarChart3,
-  BrainCircuit,
   CalendarRange,
   Check,
   Crown,
   Gamepad2,
   Microscope,
-  ListOrdered,
   Loader2,
   Users,
 } from "lucide-react";
@@ -25,6 +22,11 @@ import type { GameMode, LeagueAccount, LeagueGame, PlayerPerformance, SyncResult
 import type { PlayerCardStat } from "@/lib/liga-queries";
 
 export type LigaView = "mecze" | "wykresy" | "analityka" | "harnas";
+
+const VIEWS: LigaView[] = ["mecze", "wykresy", "analityka", "harnas"];
+export function toView(v: string | null | undefined): LigaView {
+  return VIEWS.includes(v as LigaView) ? (v as LigaView) : "mecze";
+}
 
 type Range = { from: string; to: string; today: string; earliest: string };
 
@@ -417,14 +419,17 @@ export default function LigaClient({
   accounts: LeagueAccount[];
   ver: string;
   range: Range;
-  initial: { players: string[]; sizes: number[]; modes: GameMode[]; view: LigaView };
+  initial: { players: string[]; sizes: number[]; modes: GameMode[] };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [players, setPlayers] = useState<string[]>(initial.players);
   const [sizes, setSizes] = useState<number[]>(initial.sizes);
   const [modes, setModes] = useState<GameMode[]>(initial.modes);
-  const [view, setView] = useState<LigaView>(initial.view);
+  // Widok czytany z URL (?widok=), bo przełącza go menu główne aplikacji; replaceState z applyLocal
+  // też aktualizuje useSearchParams
+  const searchParams = useSearchParams();
+  const view = toView(searchParams.get("widok"));
   const [from, setFrom] = useState(range.from);
   const [to, setTo] = useState(range.to);
   const [anaTab, setAnaTab] = useState<AnalyticsTab>("role");
@@ -463,7 +468,6 @@ export default function LigaClient({
     if (next.players) setPlayers(next.players);
     if (next.sizes) setSizes(next.sizes);
     if (next.modes) setModes(next.modes);
-    if (next.view) setView(next.view);
     window.history.replaceState(null, "", query(next));
   }
 
@@ -736,37 +740,12 @@ export default function LigaClient({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-xl bg-panel/60 p-1" role="tablist">
-            {(
-              [
-                ["mecze", "Mecze", ListOrdered],
-                ["wykresy", "Wykresy", BarChart3],
-                ["analityka", "Analityka", BrainCircuit],
-                ["harnas", "Ranking Harnasia", Crown],
-              ] as const
-            ).map(([key, label, Icon]) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={view === key}
-                onClick={() => applyLocal({ view: key })}
-                className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition ${
-                  view === key
-                    ? "bg-felt/[0.14] text-felt shadow-[inset_0_0_0_1px_var(--nav-active-ring)]"
-                    : "text-muted hover:text-cream"
-                }`}
-              >
-                <Icon size={16} /> {label}
-              </button>
-            ))}
-          </div>
-          {syncing && (
-            <span className="flex items-center gap-1.5 text-xs text-muted">
-              <Loader2 size={13} className="animate-spin" /> Sprawdzam nowe mecze…
-            </span>
-          )}
-        </div>
+        {/* Zakładki (Mecze, Wykresy, Analityka, Ranking Harnasia) są w menu głównym */}
+        {syncing && (
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <Loader2 size={13} className="animate-spin" /> Sprawdzam nowe mecze…
+          </span>
+        )}
 
         {view === "mecze" ? (
           !list ? (

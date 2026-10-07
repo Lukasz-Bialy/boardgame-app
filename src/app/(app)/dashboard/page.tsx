@@ -4,6 +4,9 @@ import type { LucideIcon } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { listGames } from "@/lib/data-games";
 import { listOpenPollsWithVoters, listMeetings } from "@/lib/data-misc";
+import { after } from "next/server";
+import { listOpenMatches, syncTournament, tournamentsDueForSync } from "@/lib/pickem";
+import DashboardPickem from "@/components/pickem/DashboardPickem";
 import { Avatar, formatDate } from "@/components/ui";
 import { displayNameOf, PLAYERS } from "@/lib/users";
 import { q } from "@/lib/db";
@@ -15,14 +18,21 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = (await getSession())!;
-  const [games, openPolls, meetings] = await Promise.all([
+  const [games, openPolls, meetings, pickemMatches, dueSync] = await Promise.all([
     listGames(),
     listOpenPollsWithVoters(),
     listMeetings(),
+    listOpenMatches(session.username),
+    tournamentsDueForSync(),
   ]);
+  // Turnieje z lolesports odświeżają się w tle — przy następnym wejściu panel Pick'em ma świeże mecze
+  if (dueSync.length) after(async () => {
+    for (const id of dueSync) await syncTournament(id).catch(console.error);
+  });
 
   const totalPlays = games.reduce((a, g) => a + g.play_count, 0);
   const pendingPolls = openPolls.filter((p) => !p.voters.includes(session.username));
+  const pendingPicks = pickemMatches.filter((m) => !m.picked).length;
   const newestGames = [...games].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 3);
   // W kafelku najpierw ankiety czekające na Twój głos
   const pollsForTile = [...pendingPolls, ...openPolls.filter((p) => !pendingPolls.includes(p))].slice(0, 3);
@@ -69,7 +79,7 @@ export default async function DashboardPage() {
           <p className="mb-1 text-sm text-muted">Cześć,</p>
           <h1 className="font-display text-4xl font-extrabold tracking-tight">{session.displayName} 👋</h1>
           {/* Brak pilnych akcji — zamiast panelu „Mordo, nie zwlekaj” */}
-          {pendingPolls.length === 0 && (
+          {pendingPolls.length === 0 && pendingPicks === 0 && (
             <p className="mt-3 inline-flex items-center gap-3 rounded-full border border-felt/30 bg-felt/10 py-2 pl-3 pr-5 text-lg font-semibold text-felt">
               <span className="cheers" aria-hidden>
                 <span className="cheers-mug cheers-left">🍺</span>
@@ -84,6 +94,9 @@ export default async function DashboardPage() {
 
       {/* Wymaga Twojej akcji — tylko gdy są ankiety bez Twojego głosu */}
       {pendingPolls.length > 0 && <ActionPanel polls={pendingPolls} />}
+
+      {/* Mecze do obstawienia ze wszystkich turniejów Pick'em */}
+      <DashboardPickem matches={pickemMatches} />
 
       {/* Statystyki */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
